@@ -6,5 +6,5 @@
   {:target     :node-script
    :main autojournal.core/main
    :externs ["resources/gas.ext.js"]
-   :output-to "Code.js"}}}
+   :output-to "dev-Code.js"}}}
 

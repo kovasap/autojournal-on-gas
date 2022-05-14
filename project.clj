@@ -13,7 +13,8 @@
                  [com.google.javascript/closure-compiler-unshaded "v20200830"]
                  [thheller/shadow-cljs "2.11.23"]
                  ; [cider/piggieback "0.5.3"]
-                 [metosin/malli "d6a8371fb50b86979d74ebc483c458d4d6181e3d"]]
+                 [metosin/malli "0.8.4"]]
+                 ; [metosin/malli "d6a8371fb50b86979d74ebc483c458d4d6181e3d"]]
   :repositories [["public-github" {:url "git://github.com"}]]
   :repl-options {}; :init (do (require 'cljs.repl.node)
                  ;           (cider.piggieback/cljs-repl (cljs.repl.node/repl-env))

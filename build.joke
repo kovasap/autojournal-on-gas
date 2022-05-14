@@ -10,17 +10,17 @@
     (println err)
     (println out)))
 
+; Useful when running with shadow-cljs, which adds a #! line to the top of the
+; script.
 (defn remove-first-line
   [s]
   (st/join "\n" (rest (st/split s "\n"))))
 
-; (run "lein" "cljsbuild" "once")
+(run "lein" "cljsbuild" "once")
 ; Apps Script doesn't like calling namespaced functions, so we create a
 ; non-namespaced main function here that it can call.
-(let [code (remove-first-line (slurp "Code.js"))]
+(let [code (slurp "Code.js")]
   (spit "Code.js" (str "
-var global = {};
-var __dirname = '.';
 function main() {
   autojournal.core.update_lifelog();
 }
