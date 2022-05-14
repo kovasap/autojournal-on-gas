@@ -58755,6 +58755,7 @@ goog.require("malli.dev.pretty");
 goog.provide("autojournal.sheets");
 goog.require("cljs.core");
 goog.require("autojournal.env_switching");
+true;
 autojournal.sheets.append_BANG_ = function autojournal$sheets$append_BANG_(id, row) {
   return SpreadsheetApp.openById(id).appendRow(cljs.core.clj__GT_js.call(null, row));
 };
@@ -58778,6 +58779,7 @@ autojournal.core.t.call(null, 5);
 autojournal.core.main = function autojournal$core$main() {
   return autojournal.core.t.call(null, 2);
 };
+true;
 autojournal.core.refresh = function autojournal$core$refresh() {
   return null;
 };
