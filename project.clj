@@ -11,8 +11,9 @@
                  ; necessary for some reason with this build configuration. If
                  ; I use the newer ones in shadow-cljs.edn, I get errors when I
                  ; try to push to google apps script.
-                 [org.clojure/clojure "1.9.0"]
-                 [org.clojure/clojurescript "1.10.439"]]
+                 [org.clojure/clojure "1.10.0"]
+                 [org.clojure/clojurescript "1.10.439"]
+                 [metosin/malli "0.8.4"]]
   :cljsbuild {:builds [{
                         :source-paths ["src"]
                         :compiler {:main autojournal.core
