@@ -5,21 +5,18 @@ files which can be pushed to a Google Apps Suite project
 with [clasp](https://github.com/google/clasp), Google's command line utility
 for local Apps Script development.
 
+See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-script.
+
 ## Usage
 
-  1. Install `lein` and `clasp`
+  1. Install `lein`, `clasp`, and `joker`
   1. Clone this repository and cd into the base directory
   1. Set up a `clasp` project as instructed
   1. Compile your ClojureScript and push it to your Apps Script project as
   shown below
 
 ```
-$ lein cljsbuild once
-Compiling ClojureScript...
-$ clasp push
-└─ Code.js
-└─ appsscript.json
-Pushed 2 files.
+./build.joke
 ```
 
 ## REPL

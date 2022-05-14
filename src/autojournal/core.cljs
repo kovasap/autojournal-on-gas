@@ -1,19 +1,27 @@
 (ns autojournal.core
-  (:require [autojournal.entrypoints]))
+  (:require [autojournal.sheets :as sheets]
+            [malli.core :as m]
+            [malli.dev.cljs :as dev]
+            [malli.dev.pretty :as pretty]))
 
 (defn ^:export update-lifelog []
-  (.. js/SpreadsheetApp
-    (openById "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc")
-    (appendRow #js ["hello", "world"])))
-; https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-script
-
-(+ 1 1)
-
-(defn t []
-  "hello")
-
-(t)
+  (sheets/append! "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc"
+                  ["hello" "world"]))
 
 (update-lifelog)
 
-(defn main [] (t))
+(+ 1 1)
+
+(defn t
+  {:malli/schema [:=> [:cat :int]
+                  [:sequential :keyword]]}
+  [i]
+  (repeat i :hello))
+
+(t 5)
+
+(defn main [] (t 2))
+
+(defn ^:dev/after-load refresh []
+  (prn "Hot code Remount")
+  (dev/start! {:report (pretty/reporter)}))  ; Check all malli function schemas

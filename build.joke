@@ -1,0 +1,28 @@
+#!/usr/bin/env joker
+
+(ns script
+  (:require [joker.os :as os]
+            [joker.string :as st]))
+
+(defn run
+  [& cmd]
+  (let [{:keys [out err]} (apply os/sh cmd)]
+    (println err)
+    (println out)))
+
+(defn remove-first-line
+  [s]
+  (st/join "\n" (rest (st/split s "\n"))))
+
+; (run "lein" "cljsbuild" "once")
+; Apps Script doesn't like calling namespaced functions, so we create a
+; non-namespaced main function here that it can call.
+(let [code (remove-first-line (slurp "Code.js"))]
+  (spit "Code.js" (str "
+var global = {};
+var __dirname = '.';
+function main() {
+  autojournal.core.update_lifelog();
+}
+  " code)))
+(run "clasp" "push")

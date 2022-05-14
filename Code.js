@@ -1,5 +1,14 @@
-#!/usr/bin/env node
-(function(){
+
+var global = {};
+var __dirname = '.';
+function main() {
+  autojournal.core.update_lifelog();
+}
+  var __dirname = '.';
+function main() {
+  autojournal.core.update_lifelog();
+}
+  (function(){
 var shadow$provide = {};
 
 var SHADOW_IMPORT_PATH = __dirname + '/.shadow-cljs/builds/autojournal/dev/out/cljs-runtime';
@@ -10,7 +19,7 @@ try {require('source-map-support').install();} catch (e) {console.warn('no "sour
 
 global.CLOSURE_NO_DEPS = true;
 
-global.CLOSURE_DEFINES = {"shadow.cljs.devtools.client.env.repl_pprint":false,"shadow.cljs.devtools.client.env.reload_strategy":"optimized","shadow.cljs.devtools.client.env.devtools_url":"","shadow.cljs.devtools.client.env.autoload":true,"shadow.cljs.devtools.client.env.proc_id":"27399357-82c3-4c17-82a3-9c2e0835963d","shadow.cljs.devtools.client.env.use_document_protocol":false,"goog.ENABLE_DEBUG_LOADER":false,"shadow.cljs.devtools.client.env.server_port":9630,"shadow.cljs.devtools.client.env.server_token":"d99160b9-e8a2-48c0-bceb-338e63703899","shadow.cljs.devtools.client.env.use_document_host":true,"shadow.cljs.devtools.client.env.module_format":"goog","goog.LOCALE":"en","shadow.cljs.devtools.client.env.build_id":"autojournal","shadow.cljs.devtools.client.env.ignore_warnings":false,"goog.DEBUG":true,"cljs.core._STAR_target_STAR_":"nodejs","shadow.cljs.devtools.client.env.log":true,"shadow.cljs.devtools.client.env.ssl":false,"shadow.cljs.devtools.client.env.enabled":true,"shadow.cljs.devtools.client.env.server_host":"localhost","shadow.cljs.devtools.client.env.worker_client_id":2,"goog.TRANSPILE":"never"};
+global.CLOSURE_DEFINES = {"shadow.cljs.devtools.client.env.repl_pprint":false,"shadow.cljs.devtools.client.env.reload_strategy":"optimized","shadow.cljs.devtools.client.env.devtools_url":"","shadow.cljs.devtools.client.env.autoload":true,"shadow.cljs.devtools.client.env.proc_id":"200cef6c-4dc9-4ff0-94bd-4075fb8093ed","shadow.cljs.devtools.client.env.use_document_protocol":false,"goog.ENABLE_DEBUG_LOADER":false,"shadow.cljs.devtools.client.env.server_port":9630,"shadow.cljs.devtools.client.env.server_token":"186bc103-598f-4da1-a4f8-a87909a75683","shadow.cljs.devtools.client.env.use_document_host":true,"shadow.cljs.devtools.client.env.module_format":"goog","goog.LOCALE":"en","shadow.cljs.devtools.client.env.build_id":"autojournal","shadow.cljs.devtools.client.env.ignore_warnings":false,"goog.DEBUG":true,"cljs.core._STAR_target_STAR_":"nodejs","shadow.cljs.devtools.client.env.log":true,"shadow.cljs.devtools.client.env.ssl":false,"shadow.cljs.devtools.client.env.enabled":true,"shadow.cljs.devtools.client.env.server_host":"localhost","shadow.cljs.devtools.client.env.worker_client_id":2,"goog.TRANSPILE":"never"};
 
 var goog = global.goog = {};
 
@@ -1709,6 +1718,44 @@ SHADOW_IMPORT("shadow.remote.runtime.tap_support.js");
 SHADOW_IMPORT("shadow.remote.runtime.eval_support.js");
 SHADOW_IMPORT("shadow.cljs.devtools.client.shared.js");
 SHADOW_IMPORT("shadow.cljs.devtools.client.node.js");
+SHADOW_IMPORT("autojournal.sheets.js");
+SHADOW_IMPORT("malli.impl.util.js");
+SHADOW_IMPORT("malli.impl.regex.js");
+SHADOW_IMPORT("malli.registry.js");
+SHADOW_IMPORT("borkdude.dynaload.js");
+SHADOW_IMPORT("malli.sci.js");
+SHADOW_IMPORT("malli.core.js");
+SHADOW_IMPORT("clojure.test.check.random.longs.bit_count_impl.js");
+SHADOW_IMPORT("clojure.test.check.random.longs.js");
+SHADOW_IMPORT("clojure.test.check.random.doubles.js");
+SHADOW_IMPORT("clojure.test.check.random.js");
+SHADOW_IMPORT("clojure.test.check.rose_tree.js");
+SHADOW_IMPORT("clojure.test.check.generators.js");
+SHADOW_IMPORT("clojure.test.check.results.js");
+SHADOW_IMPORT("clojure.test.check.impl.js");
+SHADOW_IMPORT("clojure.test.check.js");
+SHADOW_IMPORT("clojure.test.check.properties.js");
+SHADOW_IMPORT("malli.generator.js");
+SHADOW_IMPORT("malli.instrument.cljs.js");
+SHADOW_IMPORT("arrangement.core.js");
+SHADOW_IMPORT("fipp.util.js");
+SHADOW_IMPORT("fipp.ednize.js");
+SHADOW_IMPORT("fipp.visit.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.protocols.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.nodes.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.trees.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.transients.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.rrbt.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.interop.js");
+SHADOW_IMPORT("clojure.core.rrb_vector.js");
+SHADOW_IMPORT("fipp.deque.js");
+SHADOW_IMPORT("fipp.engine.js");
+SHADOW_IMPORT("fipp.edn.js");
+SHADOW_IMPORT("malli.dev.virhe.js");
+SHADOW_IMPORT("malli.util.js");
+SHADOW_IMPORT("malli.error.js");
+SHADOW_IMPORT("malli.dev.pretty.js");
+SHADOW_IMPORT("malli.dev.cljs.js");
 SHADOW_IMPORT("autojournal.core.js");
 SHADOW_IMPORT("shadow.module.main.append.js");
 
