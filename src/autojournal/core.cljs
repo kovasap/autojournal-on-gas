@@ -1,6 +1,6 @@
 (ns autojournal.core
   (:require [autojournal.sheets :as sheets]
-            [autojournal.env-switching :refer [env-switch]]
+            [autojournal.env-switching :refer-macros [env-switch]]
             [malli.core :as m]
             [malli.dev.cljs :as dev]
             [malli.dev.pretty :as pretty]))
