@@ -22,6 +22,18 @@ $ clasp push
 Pushed 2 files.
 ```
 
+## REPL
+
+```
+./start-repl.zsh
+```
+
+Should give a nREPL that can be used with vim-conjure. It would be cool if a
+node repl could be started instead from cljsbuild (see
+https://github.com/emezeske/lein-cljsbuild/issues/81) so that the
+`(:require [autojournal.entrypoints]))` wouldn't cause a breakage when
+developing.
+
 ## License
 
 Copyright © 2019 FIXME
