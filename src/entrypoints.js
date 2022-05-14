@@ -1,4 +1,4 @@
 
 function main() {
-  create_incident.core.hello_world();
+  autojournal.core.update_lifelog();
 }

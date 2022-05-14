@@ -1,6 +1,6 @@
-(ns create-incident.core-test
+(ns autojournal.core-test
   (:require [clojure.test :refer :all]
-            [create-incident.core :refer :all]))
+            [autojournal.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
