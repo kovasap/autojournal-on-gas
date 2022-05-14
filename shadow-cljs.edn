@@ -1,13 +1,15 @@
 ; Run :ConjureShadowSelect autojournal in nvim to use repl.
 ; A browser must be loaded with project code for this to work.
 {:source-paths ["src"]
- :dependencies [[org.clojure/clojure "1.10.1"]
-                [org.clojure/clojurescript "1.10.773"]
-                [metosin/malli "0.8.4"]]
+ :dependencies [[metosin/malli "0.8.4"]]
  :builds
  {:autojournal
-  {:target     :node-script
+  {:target :node-script
    :main autojournal.core/main
+   ; This works kinda to target apps script, but splits up the code into
+   ; multiple files.
+   ; :target :browser 
+   ; :modules {:main {:entries [autojournal.core]}}
    :externs ["resources/gas.ext.js"]
    :output-to "dev-Code.js"}}}
 
