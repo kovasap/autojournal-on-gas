@@ -5,4 +5,4 @@ node_modules/**
 .cljs_node_repl/**
 .cljs_rhino_repl/**
 out/**
-src/entrypoints.js
+dev-Code.js

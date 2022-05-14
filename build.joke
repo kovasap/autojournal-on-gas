@@ -16,6 +16,7 @@
   [s]
   (st/join "\n" (rest (st/split s "\n"))))
 
+(run "rm" "Code.js")
 (run "lein" "cljsbuild" "once")
 ; Apps Script doesn't like calling namespaced functions, so we create a
 ; non-namespaced main function here that it can call.
