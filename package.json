@@ -1,0 +1,27 @@
+{
+  "name": "cljs_clamp",
+  "version": "1.0.0",
+  "description": "Proof of concept (i.e., hello world) codebase that compiles ClojureScript to js files which can be pushed to a Google Apps Suite project with [clasp](https://github.com/google/clasp), Google's command line utility for local Apps Script development.",
+  "main": "Code.js",
+  "directories": {
+    "doc": "doc",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kovasap/autojournal-on-gas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kovasap/autojournal-on-gas/issues"
+  },
+  "homepage": "https://github.com/kovasap/autojournal-on-gas#readme",
+  "devDependencies": {
+    "shadow-cljs": "^2.18.0"
+  }
+}

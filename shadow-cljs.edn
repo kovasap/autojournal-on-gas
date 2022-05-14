@@ -1,0 +1,9 @@
+; Run :ConjureShadowSelect autojournal in nvim to use repl.
+; A browser must be loaded with project code for this to work.
+{:lein true
+ :builds
+ {:autojournal
+  {:target     :node-script
+   :main autojournal.core/main
+   :output-to "Code.js"}}}
+
