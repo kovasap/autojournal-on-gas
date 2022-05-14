@@ -1,5 +1,5 @@
 (ns autojournal.sheets
-  (:require [autojournal.env-switching :refer [env-switch]]))
+  (:require [autojournal.env-switching :refer-macros [env-switch]]))
 
 (defn append!
   [id row] 
