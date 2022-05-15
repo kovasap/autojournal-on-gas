@@ -13,7 +13,8 @@
                  ; try to push to google apps script.
                  [org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.439"]
-                 [metosin/malli "0.8.4"]]
+                 [metosin/malli "0.8.4"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]]
   :cljsbuild {:builds [{
                         :source-paths ["src"]
                         :compiler {:main autojournal.core

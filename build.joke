@@ -21,10 +21,7 @@
 (run "lein" "cljsbuild" "once")
 ; Apps Script doesn't like calling namespaced functions, so we create a
 ; non-namespaced main function here that it can call.
-(let [code (slurp "Code.js")]
-  (spit "Code.js" (str "
-function main() {
-  autojournal.core.update_lifelog();
-}
-  " code)))
+(let [code (slurp "Code.js")
+      entrypoints (slurp "src/autojournal/entry_points.js")]
+  (spit "Code.js" (str entrypoints "\n" code)))
 (run "clasp" "push")
