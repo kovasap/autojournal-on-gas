@@ -17,11 +17,11 @@
   (st/join "\n" (rest (st/split s "\n"))))
 
 (run "rm" "Code.js")
-(run "lein" "cljsbuild" "once")
-; (run "npx" "shadow-cljs" "release" "autojournal")
+; (run "lein" "cljsbuild" "once")
+(run "npx" "shadow-cljs" "release" "autojournal")
 ; Apps Script doesn't like calling namespaced functions, so we create a
 ; non-namespaced main function here that it can call.
-(let [code (slurp "Code.js")
+(let [code (remove-first-line (slurp "Code.js"))
       entrypoints (slurp "src/autojournal/entry_points.js")]
   (spit "Code.js" (str entrypoints "\n" code)))
 (run "clasp" "push")

@@ -11,6 +11,9 @@
    ; multiple files.
    ; :target :browser 
    ; :modules {:main {:entries [autojournal.core]}}
+   :compiler-options {:optimizations :whitespace
+                      :pretty-print true}
+                      ; :output-feature-set :es5}
    :externs ["resources/gas.ext.js"]
-   :output-to "dev-Code.js"}}}
+   :output-to "Code.js"}}}
 
