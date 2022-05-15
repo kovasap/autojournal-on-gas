@@ -7,23 +7,12 @@
             [malli.dev.pretty :as pretty]))
 
 (defn ^:export update-lifelog []
-  (prn (drive/get-files "journal.txt"))
+  (prn (into [] (for [file (drive/get-files "20220515.zip")]
+                  file)))
   (sheets/append! "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc"
                   ["hello" "world"]))
 
-(update-lifelog)
-
-(+ 1 1)
-
-(defn t
-  {:malli/schema [:=> [:cat :int]
-                  [:sequential :keyword]]}
-  [i]
-  (repeat i :hello))
-
-(t 5)
-
-(defn main [] (t 2))
+(defn main [] (update-lifelog))
 
 (defn ^:dev/after-load refresh []
   (env-switch

@@ -4,11 +4,17 @@
   
 (prn (drive/get-files "journal.txt"))
 
-(def -get-files
+(defn -date-to-file
+  {:malli/schema [:=> [:cat Date] :string]}
+  [{:keys [day month year]}]
+  (str year month day ".zip"))
+  
+
+(defn -get-files
   {:malli/schema [:=> [:cat [:sequential Date]] ; Start time
                   [:sequential Event]]}
-  [days]
-  )
+  [days])
+  
 
 (defn get-events
   EventFetcher

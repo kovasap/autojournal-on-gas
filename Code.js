@@ -1,8 +1,20 @@
-
 function main() {
   autojournal.core.update_lifelog();
 }
-  if(typeof Math.imul == "undefined" || (Math.imul(0xffffffff,5) == 0)) {
+
+function add_today() {
+  autojournal.core.update_lifelog();
+}
+
+function add_last_week() {
+  autojournal.core.update_lifelog();
+}
+
+function regenerate_all() {
+  autojournal.core.update_lifelog();
+}
+
+if(typeof Math.imul == "undefined" || (Math.imul(0xffffffff,5) == 0)) {
     Math.imul = function (a, b) {
         var ah  = (a >>> 16) & 0xffff;
         var al = a & 0xffff;
@@ -58730,14 +58742,191 @@ malli.dev.pretty.explain.cljs$lang$maxFixedArity = 3;
 goog.provide("autojournal.drive");
 goog.require("cljs.core");
 goog.require("autojournal.env_switching");
-autojournal.drive._get_file = function autojournal$drive$_get_file(name) {
-  return DriveApp.getFilesByName(name).next();
+goog.require("clojure.string");
+autojournal.drive._get_file_blob = function autojournal$drive$_get_file_blob(filename) {
+  return DriveApp.getFilesByName(filename).next().getBlob();
 };
-autojournal.drive.get_files = function autojournal$drive$get_files(name) {
+autojournal.drive._two_d_array_to_maps = function autojournal$drive$_two_d_array_to_maps(two_d_array) {
+  var header = cljs.core.first.call(null, two_d_array);
+  var rows = cljs.core.rest.call(null, two_d_array);
+  return cljs.core.into.call(null, cljs.core.PersistentVector.EMPTY, function() {
+    var iter__4434__auto__ = function(header, rows) {
+      return function autojournal$drive$_two_d_array_to_maps_$_iter__1937(s__1938) {
+        return new cljs.core.LazySeq(null, function(header, rows) {
+          return function() {
+            var s__1938__$1 = s__1938;
+            while (true) {
+              var temp__5720__auto__ = cljs.core.seq.call(null, s__1938__$1);
+              if (temp__5720__auto__) {
+                var s__1938__$2 = temp__5720__auto__;
+                if (cljs.core.chunked_seq_QMARK_.call(null, s__1938__$2)) {
+                  var c__4432__auto__ = cljs.core.chunk_first.call(null, s__1938__$2);
+                  var size__4433__auto__ = cljs.core.count.call(null, c__4432__auto__);
+                  var b__1940 = cljs.core.chunk_buffer.call(null, size__4433__auto__);
+                  if (function() {
+                    var i__1939 = 0;
+                    while (true) {
+                      if (i__1939 < size__4433__auto__) {
+                        var row = cljs.core._nth.call(null, c__4432__auto__, i__1939);
+                        cljs.core.chunk_append.call(null, b__1940, cljs.core.into.call(null, cljs.core.PersistentArrayMap.EMPTY, function() {
+                          var iter__4434__auto__ = function(i__1939, row, c__4432__auto__, size__4433__auto__, b__1940, s__1938__$2, temp__5720__auto__, header, rows) {
+                            return function autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1941(s__1942) {
+                              return new cljs.core.LazySeq(null, function(i__1939, row, c__4432__auto__, size__4433__auto__, b__1940, s__1938__$2, temp__5720__auto__, header, rows) {
+                                return function() {
+                                  var s__1942__$1 = s__1942;
+                                  while (true) {
+                                    var temp__5720__auto____$1 = cljs.core.seq.call(null, s__1942__$1);
+                                    if (temp__5720__auto____$1) {
+                                      var s__1942__$2 = temp__5720__auto____$1;
+                                      if (cljs.core.chunked_seq_QMARK_.call(null, s__1942__$2)) {
+                                        var c__4432__auto____$1 = cljs.core.chunk_first.call(null, s__1942__$2);
+                                        var size__4433__auto____$1 = cljs.core.count.call(null, c__4432__auto____$1);
+                                        var b__1944 = cljs.core.chunk_buffer.call(null, size__4433__auto____$1);
+                                        if (function() {
+                                          var i__1943 = 0;
+                                          while (true) {
+                                            if (i__1943 < size__4433__auto____$1) {
+                                              var vec__1945 = cljs.core._nth.call(null, c__4432__auto____$1, i__1943);
+                                              var k = cljs.core.nth.call(null, vec__1945, 0, null);
+                                              var v = cljs.core.nth.call(null, vec__1945, 1, null);
+                                              cljs.core.chunk_append.call(null, b__1944, new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null, k), v], null));
+                                              var G__1961 = i__1943 + 1;
+                                              i__1943 = G__1961;
+                                              continue;
+                                            } else {
+                                              return true;
+                                            }
+                                            break;
+                                          }
+                                        }()) {
+                                          return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1944), autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1941.call(null, cljs.core.chunk_rest.call(null, s__1942__$2)));
+                                        } else {
+                                          return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1944), null);
+                                        }
+                                      } else {
+                                        var vec__1948 = cljs.core.first.call(null, s__1942__$2);
+                                        var k = cljs.core.nth.call(null, vec__1948, 0, null);
+                                        var v = cljs.core.nth.call(null, vec__1948, 1, null);
+                                        return cljs.core.cons.call(null, new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null, k), v], null), autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1941.call(null, cljs.core.rest.call(null, s__1942__$2)));
+                                      }
+                                    } else {
+                                      return null;
+                                    }
+                                    break;
+                                  }
+                                };
+                              }(i__1939, row, c__4432__auto__, size__4433__auto__, b__1940, s__1938__$2, temp__5720__auto__, header, rows), null, null);
+                            };
+                          }(i__1939, row, c__4432__auto__, size__4433__auto__, b__1940, s__1938__$2, temp__5720__auto__, header, rows);
+                          return iter__4434__auto__.call(null, cljs.core.partition.call(null, 2, cljs.core.interleave.call(null, header, row)));
+                        }()));
+                        var G__1962 = i__1939 + 1;
+                        i__1939 = G__1962;
+                        continue;
+                      } else {
+                        return true;
+                      }
+                      break;
+                    }
+                  }()) {
+                    return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1940), autojournal$drive$_two_d_array_to_maps_$_iter__1937.call(null, cljs.core.chunk_rest.call(null, s__1938__$2)));
+                  } else {
+                    return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1940), null);
+                  }
+                } else {
+                  var row = cljs.core.first.call(null, s__1938__$2);
+                  return cljs.core.cons.call(null, cljs.core.into.call(null, cljs.core.PersistentArrayMap.EMPTY, function() {
+                    var iter__4434__auto__ = function(row, s__1938__$2, temp__5720__auto__, header, rows) {
+                      return function autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1951(s__1952) {
+                        return new cljs.core.LazySeq(null, function(row, s__1938__$2, temp__5720__auto__, header, rows) {
+                          return function() {
+                            var s__1952__$1 = s__1952;
+                            while (true) {
+                              var temp__5720__auto____$1 = cljs.core.seq.call(null, s__1952__$1);
+                              if (temp__5720__auto____$1) {
+                                var s__1952__$2 = temp__5720__auto____$1;
+                                if (cljs.core.chunked_seq_QMARK_.call(null, s__1952__$2)) {
+                                  var c__4432__auto__ = cljs.core.chunk_first.call(null, s__1952__$2);
+                                  var size__4433__auto__ = cljs.core.count.call(null, c__4432__auto__);
+                                  var b__1954 = cljs.core.chunk_buffer.call(null, size__4433__auto__);
+                                  if (function() {
+                                    var i__1953 = 0;
+                                    while (true) {
+                                      if (i__1953 < size__4433__auto__) {
+                                        var vec__1955 = cljs.core._nth.call(null, c__4432__auto__, i__1953);
+                                        var k = cljs.core.nth.call(null, vec__1955, 0, null);
+                                        var v = cljs.core.nth.call(null, vec__1955, 1, null);
+                                        cljs.core.chunk_append.call(null, b__1954, new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null, k), v], null));
+                                        var G__1963 = i__1953 + 1;
+                                        i__1953 = G__1963;
+                                        continue;
+                                      } else {
+                                        return true;
+                                      }
+                                      break;
+                                    }
+                                  }()) {
+                                    return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1954), autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1951.call(null, cljs.core.chunk_rest.call(null, s__1952__$2)));
+                                  } else {
+                                    return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__1954), null);
+                                  }
+                                } else {
+                                  var vec__1958 = cljs.core.first.call(null, s__1952__$2);
+                                  var k = cljs.core.nth.call(null, vec__1958, 0, null);
+                                  var v = cljs.core.nth.call(null, vec__1958, 1, null);
+                                  return cljs.core.cons.call(null, new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null, k), v], null), autojournal$drive$_two_d_array_to_maps_$_iter__1937_$_iter__1951.call(null, cljs.core.rest.call(null, s__1952__$2)));
+                                }
+                              } else {
+                                return null;
+                              }
+                              break;
+                            }
+                          };
+                        }(row, s__1938__$2, temp__5720__auto__, header, rows), null, null);
+                      };
+                    }(row, s__1938__$2, temp__5720__auto__, header, rows);
+                    return iter__4434__auto__.call(null, cljs.core.partition.call(null, 2, cljs.core.interleave.call(null, header, row)));
+                  }()), autojournal$drive$_two_d_array_to_maps_$_iter__1937.call(null, cljs.core.rest.call(null, s__1938__$2)));
+                }
+              } else {
+                return null;
+              }
+              break;
+            }
+          };
+        }(header, rows), null, null);
+      };
+    }(header, rows);
+    return iter__4434__auto__.call(null, rows);
+  }());
+};
+autojournal.drive._two_d_array_to_maps.call(null, new cljs.core.PersistentVector(null, 5, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.PersistentVector(null, 18, 5, cljs.core.PersistentVector.EMPTY_NODE, ["time", "lat", "lon", "elevation", "accuracy", "bearing", "speed", "satellites", "provider", "hdop", "vdop", "pdop", "geoidheight", "ageofdgpsdata", "dgpsid", "activity", "battery", "annotation"], null), new cljs.core.PersistentVector(null, 18, 5, cljs.core.PersistentVector.EMPTY_NODE, 
+["2022-05-15T07:00:28.000Z", "47.66866721", "-122.31444872", "44.99261474609375", "9.648001", "", "0.0", "0", "gps", "", "", "", "", "", "", "", "71", ""], null), new cljs.core.PersistentVector(null, 18, 5, cljs.core.PersistentVector.EMPTY_NODE, ["2022-05-15T07:01:03.000Z", "47.66866769", "-122.31444892", "45.0035400390625", "9.648001", "", "0.0", "0", "gps", "", "", "", "", "", "", "", "72", ""], null), new cljs.core.PersistentVector(null, 18, 5, cljs.core.PersistentVector.EMPTY_NODE, ["2022-05-15T07:01:37.000Z", 
+"47.66866761", "-122.31444817", "44.888916015625", "7.504", "", "0.0", "0", "gps", "", "", "", "", "", "", "", "72", ""], null), new cljs.core.PersistentVector(null, 18, 5, cljs.core.PersistentVector.EMPTY_NODE, ["2022-05-15T07:02:10.000Z", "47.66866714", "-122.3144491", "44.9139404296875", "6.432", "", "0.0", "0", "gps", "", "", "", "", "", "", "", "73", ""], null)], null));
+autojournal.drive._parse_csv = function autojournal$drive$_parse_csv(blob) {
+  var two_d_array = cljs.core.js__GT_clj.call(null, Utilities.parseCsv(blob.getDataAsString()));
+  return autojournal.drive._two_d_array_to_maps.call(null, two_d_array);
+};
+autojournal.drive._get_zipped_files = function autojournal$drive$_get_zipped_files(zip_blob) {
+  return cljs.core.reduce.call(null, cljs.core.concat, cljs.core.mapv.call(null, autojournal.drive._get_file_contents, Utilities.unzip(zip_blob)));
+};
+autojournal.drive._get_file_contents = function autojournal$drive$_get_file_contents(blob) {
+  cljs.core.prn.call(null, blob.getName());
+  if (clojure.string.ends_with_QMARK_.call(null, blob.getName(), ".zip")) {
+    return autojournal.drive._get_zipped_files.call(null, blob);
+  } else {
+    if (clojure.string.ends_with_QMARK_.call(null, blob.getName(), ".csv")) {
+      return new cljs.core.PersistentVector(null, 1, 5, cljs.core.PersistentVector.EMPTY_NODE, [autojournal.drive._parse_csv.call(null, blob)], null);
+    } else {
+      return new cljs.core.PersistentVector(null, 1, 5, cljs.core.PersistentVector.EMPTY_NODE, [blob.getDataAsString()], null);
+    }
+  }
+};
+autojournal.drive.get_files = function autojournal$drive$get_files(filename) {
   return autojournal.env_switching.env_switch.call(null, new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null, "node", "node", 581201198), function() {
-    return cljs.core.prn.call(null, name);
+    return cljs.core.prn.call(null, filename);
   }, new cljs.core.Keyword(null, "app-script", "app-script", 1732990731), function() {
-    return autojournal.drive._get_file.call(null, name).getBlob().getDataAsString();
+    return autojournal.drive._get_file_contents.call(null, autojournal.drive._get_file_blob.call(null, filename));
   }], null));
 };
 goog.provide("malli.instrument.cljs");
@@ -58801,7 +58990,50 @@ goog.require("malli.core");
 goog.require("malli.dev.cljs");
 goog.require("malli.dev.pretty");
 autojournal.core.update_lifelog = function autojournal$core$update_lifelog() {
-  cljs.core.prn.call(null, autojournal.drive.get_files.call(null, "journal.txt"));
+  cljs.core.prn.call(null, cljs.core.into.call(null, cljs.core.PersistentVector.EMPTY, function() {
+    var iter__4434__auto__ = function autojournal$core$update_lifelog_$_iter__11276(s__11277) {
+      return new cljs.core.LazySeq(null, function() {
+        var s__11277__$1 = s__11277;
+        while (true) {
+          var temp__5720__auto__ = cljs.core.seq.call(null, s__11277__$1);
+          if (temp__5720__auto__) {
+            var s__11277__$2 = temp__5720__auto__;
+            if (cljs.core.chunked_seq_QMARK_.call(null, s__11277__$2)) {
+              var c__4432__auto__ = cljs.core.chunk_first.call(null, s__11277__$2);
+              var size__4433__auto__ = cljs.core.count.call(null, c__4432__auto__);
+              var b__11279 = cljs.core.chunk_buffer.call(null, size__4433__auto__);
+              if (function() {
+                var i__11278 = 0;
+                while (true) {
+                  if (i__11278 < size__4433__auto__) {
+                    var file = cljs.core._nth.call(null, c__4432__auto__, i__11278);
+                    cljs.core.chunk_append.call(null, b__11279, file);
+                    var G__11280 = i__11278 + 1;
+                    i__11278 = G__11280;
+                    continue;
+                  } else {
+                    return true;
+                  }
+                  break;
+                }
+              }()) {
+                return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__11279), autojournal$core$update_lifelog_$_iter__11276.call(null, cljs.core.chunk_rest.call(null, s__11277__$2)));
+              } else {
+                return cljs.core.chunk_cons.call(null, cljs.core.chunk.call(null, b__11279), null);
+              }
+            } else {
+              var file = cljs.core.first.call(null, s__11277__$2);
+              return cljs.core.cons.call(null, file, autojournal$core$update_lifelog_$_iter__11276.call(null, cljs.core.rest.call(null, s__11277__$2)));
+            }
+          } else {
+            return null;
+          }
+          break;
+        }
+      }, null, null);
+    };
+    return iter__4434__auto__.call(null, autojournal.drive.get_files.call(null, "20220515.zip"));
+  }()));
   return autojournal.sheets.append_BANG_.call(null, "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc", new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["hello", "world"], null));
 };
 goog.exportSymbol("autojournal.core.update_lifelog", autojournal.core.update_lifelog);
