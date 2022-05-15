@@ -1,4 +1,5 @@
 (ns autojournal.env-switching)
+; See https://clojurians.slack.com/archives/C03S1KBA2/p1652554323001159
 
 #?(:clj (defmacro env-switch [{:keys [node app-script]}]
           (println (System/getenv "APPS_SCRIPT_BUILD"))

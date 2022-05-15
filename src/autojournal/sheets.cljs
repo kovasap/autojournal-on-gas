@@ -1,10 +1,10 @@
 (ns autojournal.sheets
-  (:require [autojournal.env-switching :refer-macros [env-switch]]))
+  (:require [autojournal.env-switching :refer [env-switch]]))
 
 (defn append!
-  [id row] 
+  [id row]
   (env-switch
-    {:node (prn id row)
-     :app-script (.. js/SpreadsheetApp
-                   (openById id)
-                   (appendRow (clj->js row)))}))
+    {:node #(prn id row)
+     :app-script #(.. js/SpreadsheetApp
+                    (openById id)
+                    (appendRow (clj->js row)))}))

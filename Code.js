@@ -36371,6 +36371,23 @@ goog.require("cljs.core");
 goog.define("process.env.NODE_ENV", "development");
 goog.provide("autojournal.env_switching");
 goog.require("cljs.core");
+autojournal.env_switching.env_switch = function autojournal$env_switching$env_switch(p__1922) {
+  var map__1923 = p__1922;
+  var map__1923__$1 = (!(map__1923 == null) ? map__1923.cljs$lang$protocol_mask$partition0$ & 64 || cljs.core.PROTOCOL_SENTINEL === map__1923.cljs$core$ISeq$ ? true : false : false) ? cljs.core.apply.call(null, cljs.core.hash_map, map__1923) : map__1923;
+  var node = cljs.core.get.call(null, map__1923__$1, new cljs.core.Keyword(null, "node", "node", 581201198));
+  var app_script = cljs.core.get.call(null, map__1923__$1, new cljs.core.Keyword(null, "app-script", "app-script", 1732990731));
+  if (cljs.core.truth_(typeof SpreadsheetApp !== "undefined" ? new cljs.core.Var(function(map__1923, map__1923__$1, node, app_script) {
+    return function() {
+      return SpreadsheetApp;
+    };
+  }(map__1923, map__1923__$1, node, app_script), cljs.core.with_meta(new cljs.core.Symbol("js", "SpreadsheetApp", "js/SpreadsheetApp", 3208159, null), new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword("cljs.analyzer", "no-resolve", "cljs.analyzer/no-resolve", -1872351017), true], null)), new cljs.core.PersistentArrayMap(null, 8, [new cljs.core.Keyword(null, "ns", "ns", 441598760), new cljs.core.Symbol(null, "js", "js", -886355190, null), new cljs.core.Keyword(null, "doc", "doc", 1913296891), 
+  null, new cljs.core.Keyword(null, "file", "file", -1269645878), null, new cljs.core.Keyword(null, "line", "line", 212345235), null, new cljs.core.Keyword(null, "column", "column", 2078222095), null, new cljs.core.Keyword(null, "name", "name", 1843675177), new cljs.core.Symbol(null, "SpreadsheetApp", "SpreadsheetApp", 3178496, null), new cljs.core.Keyword(null, "test", "test", 577538877), cljs.core.truth_(SpreadsheetApp) ? SpreadsheetApp.cljs$lang$test : null, new cljs.core.Keyword(null, "arglists", 
+  "arglists", 1661989754), cljs.core.List.EMPTY], null)) : null)) {
+    return app_script.call(null);
+  } else {
+    return node.call(null);
+  }
+};
 goog.provide("fipp.util");
 goog.require("cljs.core");
 fipp.util.boolean_QMARK_ = function fipp$util$boolean_QMARK_(x) {
@@ -58710,6 +58727,19 @@ malli.dev.pretty.explain.cljs$core$IFn$_invoke$arity$3 = function(_QMARK_schema,
   }
 };
 malli.dev.pretty.explain.cljs$lang$maxFixedArity = 3;
+goog.provide("autojournal.drive");
+goog.require("cljs.core");
+goog.require("autojournal.env_switching");
+autojournal.drive._get_file = function autojournal$drive$_get_file(name) {
+  return DriveApp.getFilesByName(name).next();
+};
+autojournal.drive.get_files = function autojournal$drive$get_files(name) {
+  return autojournal.env_switching.env_switch.call(null, new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null, "node", "node", 581201198), function() {
+    return cljs.core.prn.call(null, name);
+  }, new cljs.core.Keyword(null, "app-script", "app-script", 1732990731), function() {
+    return autojournal.drive._get_file.call(null, name).getBlob().getDataAsString();
+  }], null));
+};
 goog.provide("malli.instrument.cljs");
 goog.require("cljs.core");
 if (typeof malli !== "undefined" && typeof malli.instrument !== "undefined" && typeof malli.instrument.cljs !== "undefined" && typeof malli.instrument.cljs.instrumented_vars !== "undefined") {
@@ -58755,18 +58785,23 @@ goog.require("malli.dev.pretty");
 goog.provide("autojournal.sheets");
 goog.require("cljs.core");
 goog.require("autojournal.env_switching");
-true;
 autojournal.sheets.append_BANG_ = function autojournal$sheets$append_BANG_(id, row) {
-  return SpreadsheetApp.openById(id).appendRow(cljs.core.clj__GT_js.call(null, row));
+  return autojournal.env_switching.env_switch.call(null, new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null, "node", "node", 581201198), function() {
+    return cljs.core.prn.call(null, id, row);
+  }, new cljs.core.Keyword(null, "app-script", "app-script", 1732990731), function() {
+    return SpreadsheetApp.openById(id).appendRow(cljs.core.clj__GT_js.call(null, row));
+  }], null));
 };
 goog.provide("autojournal.core");
 goog.require("cljs.core");
 goog.require("autojournal.sheets");
+goog.require("autojournal.drive");
 goog.require("autojournal.env_switching");
 goog.require("malli.core");
 goog.require("malli.dev.cljs");
 goog.require("malli.dev.pretty");
 autojournal.core.update_lifelog = function autojournal$core$update_lifelog() {
+  cljs.core.prn.call(null, autojournal.drive.get_files.call(null, "journal.txt"));
   return autojournal.sheets.append_BANG_.call(null, "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc", new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["hello", "world"], null));
 };
 goog.exportSymbol("autojournal.core.update_lifelog", autojournal.core.update_lifelog);
@@ -58779,7 +58814,21 @@ autojournal.core.t.call(null, 5);
 autojournal.core.main = function autojournal$core$main() {
   return autojournal.core.t.call(null, 2);
 };
-true;
 autojournal.core.refresh = function autojournal$core$refresh() {
-  return null;
+  return autojournal.env_switching.env_switch.call(null, new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null, "node", "node", 581201198), function() {
+    cljs.core.prn.call(null, "Hot code Remount");
+    cljs.core.filterv.call(null, cljs.core.some_QMARK_, cljs.core.PersistentVector.EMPTY);
+    cljs.core.PersistentHashSet.createAsIfByAssoc([function() {
+      malli.core._register_function_schema_BANG_.call(null, new cljs.core.Symbol(null, "autojournal.core", "autojournal.core", -1008320990, null), cljs.core.with_meta(new cljs.core.Symbol(null, "t", "t", 242699008, null), new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null, "arglists", "arglists", 1661989754), cljs.core.list(new cljs.core.Symbol(null, "quote", "quote", 1377916282, null), cljs.core.list(new cljs.core.PersistentVector(null, 1, 5, cljs.core.PersistentVector.EMPTY_NODE, 
+      [new cljs.core.Symbol(null, "i", "i", 253690212, null)], null))), new cljs.core.Keyword("malli", "schema", "malli/schema", -1764044328), new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "\x3d\x3e", "\x3d\x3e", 1841166128), new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "cat", "cat", -1457810207), new cljs.core.Keyword(null, "int", "int", -1741416922)], null), new cljs.core.PersistentVector(null, 
+      2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "sequential", "sequential", -1082983960), new cljs.core.Keyword(null, "keyword", "keyword", 811389747)], null)], null)], null)), new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "\x3d\x3e", "\x3d\x3e", 1841166128), new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "cat", "cat", -1457810207), new cljs.core.Keyword(null, 
+      "int", "int", -1741416922)], null), new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "sequential", "sequential", -1082983960), new cljs.core.Keyword(null, "keyword", "keyword", 811389747)], null)], null), new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null, "schema", "schema", -1582001791), new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "\x3d\x3e", 
+      "\x3d\x3e", 1841166128), new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "cat", "cat", -1457810207), new cljs.core.Keyword(null, "int", "int", -1741416922)], null), new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null, "sequential", "sequential", -1082983960), new cljs.core.Keyword(null, "keyword", "keyword", 811389747)], null)], null)], null));
+      return new cljs.core.Symbol("autojournal.core", "t", "autojournal.core/t", 1863942125, null);
+    }()]);
+    cljs.core.filterv.call(null, cljs.core.some_QMARK_, cljs.core.PersistentVector.EMPTY);
+    return null;
+  }, new cljs.core.Keyword(null, "app-script", "app-script", 1732990731), function() {
+    return cljs.core.List.EMPTY;
+  }], null));
 };
