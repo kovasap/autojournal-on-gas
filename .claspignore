@@ -7,3 +7,4 @@ node_modules/**
 out/**
 public/**
 dev-Code.js
+src/autojournal/entry_points.js

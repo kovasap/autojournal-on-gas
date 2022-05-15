@@ -10,18 +10,30 @@
     (println err)
     (println out)))
 
-; Useful when running with shadow-cljs, which adds a #! line to the top of the
-; script.
 (defn remove-first-line
   [s]
   (st/join "\n" (rest (st/split s "\n"))))
 
+
+(defn remove-last-line
+  [s]
+  (st/join "\n" (drop-last (st/split s "\n"))))
+
+(def frontmatter
+  "var global = {}; var process = {\"argv\": [\"one\", \"two\"]};")
+  
+
 (run "rm" "Code.js")
 ; (run "lein" "cljsbuild" "once")
-(run "npx" "shadow-cljs" "release" "autojournal")
-; Apps Script doesn't like calling namespaced functions, so we create a
-; non-namespaced main function here that it can call.
-(let [code (remove-first-line (slurp "Code.js"))
+(run "npx" "shadow-cljs" "release" "autojournal-for-gas")
+; TODO do this:
+; https://clojurians.slack.com/archives/C6N245JGG/p1652646542137479 instead of
+; this hacky file manipulation
+(let [code (-> (slurp "Code.js")
+               (remove-first-line) ; Remove the #! line
+               (remove-first-line) ; Remove the `(function(){` line
+               (remove-last-line)  ; Remove a newline
+               (remove-last-line)) ; Remove the `})();` line
       entrypoints (slurp "src/autojournal/entry_points.js")]
-  (spit "Code.js" (str entrypoints "\n" code)))
+  (spit "Code.js" (str frontmatter "\n" code "\n" entrypoints)))
 (run "clasp" "push")
