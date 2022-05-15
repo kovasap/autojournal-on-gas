@@ -1,7 +1,6 @@
 ; Run :ConjureShadowSelect autojournal in nvim to use repl.
 ; A browser must be loaded with project code for this to work.
 {:source-paths ["src"]
-                ; "src/shadow/build/targets/google_apps_script.clj"]
  :dependencies [[metosin/malli "0.8.4"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]]
  :builds

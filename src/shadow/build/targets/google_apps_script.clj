@@ -1,3 +1,5 @@
+; Copy of
+; https://github.com/thheller/shadow-cljs/blob/master/src/main/shadow/build/targets/node_script.clj
 (ns shadow.build.targets.google-apps-script
   (:refer-clojure :exclude (flush))
   (:require
