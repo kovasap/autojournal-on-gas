@@ -7,10 +7,6 @@
  {:autojournal
   {:target :node-script
    :main autojournal.core/main
-   ; This works kinda to target apps script, but splits up the code into
-   ; multiple files.
-   ; :target :browser 
-   ; :modules {:main {:entries [autojournal.core]}}
    :compiler-options {:optimizations :whitespace
                       :pretty-print true}
                       ; :output-feature-set :es5}
