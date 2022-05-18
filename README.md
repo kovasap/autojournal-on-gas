@@ -35,3 +35,7 @@ In another, run:
 ```
 node dev-Code.js
 ```
+
+## TODOs
+
+ - Send emails with insights (perhaps with biomarker correlator links)
