@@ -33,5 +33,5 @@
                              [:description :string]]])))
 
 (def EventFetcher
-  {:malli/schema [:=> [:cat Timestamp] ; Start time
-                  [:sequential Event]]})
+  [:=> [:cat Timestamp] ; Start time
+   [:sequential Event]])

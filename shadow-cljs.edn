@@ -7,8 +7,7 @@
  {:autojournal-for-node
   {:target :node-script
    :main autojournal.core/main
-   ; :compiler-options {:optimizations :simple
-   ;                    :pretty-print true
+   :compiler-options {:infer-externs true}
    :externs ["resources/gas.ext.js"]
    :output-to "dev-Code.js"}
   :autojournal-for-gas
