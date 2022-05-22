@@ -70,6 +70,41 @@
         -stationary-distance-miles)
      (-haversine-distance reading1 reading2)))
 
+(defn -average
+  {:malli/schema [:=> [:cat [:sequential :double]] :double]}
+  [coll]
+  (/ (reduce + coll) (count coll)))
+
+(defn -get-midpoint
+  "Note that this simply averages coordinates, which is NOT ACCURATE for large
+  distances or near poles, see https://gis.stackexchange.com/a/7566."
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  Reading]}
+  [readings]
+  {:time (-average (map :time readings))
+   :lat (-average (map :lat readings))
+   :lon (-average (map :lon readings))
+   ; Accuracy is currently not used.
+   :accuracy-miles 0})
+  
+
+(def -all-same-place-fraction-required
+  "The fraction of points that must be within -stationary-distance-miles of
+  each other for the whole cluster of points to be considered at the same
+  place."
+  0.9)
+
+
+(defn -are-all-same-place
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  :bool]}
+  [readings]
+  (let [midpoint (-get-midpoint readings)
+        total (count readings)
+        same (reduce + (for [reading readings]
+                         (if (-are-same-place midpoint reading) 1 0)))]
+    (> (/ same total)
+       -all-same-place-fraction-required)))
 
 (-are-same-place
   (-row-to-reading
@@ -85,11 +120,33 @@
      :lon "-122.31444892",
      :lat "47.66866769"}))
 
+(defn -split-readings
+  "Splits off the first set of readings that all occured in the same place."
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  [:tuple [:sequential Reading] [:sequential Reading]]]}
+  [readings]
+  [])
+
+(defn -readings-to-event
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  Event]}
+  [readings]
+  (let [midpoint (-get-midpoint readings)]
+    {:start (:time (first readings))
+     ; Use something other than `last` if performance is bad
+     :end (:time (last readings))
+     :summary (str "At " midpoint)}))
+
+
 (defn -readings-to-events
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   [:sequential Event]]}
   [readings]
-  [])
+  (if (empty? readings)
+    []
+    (let [[start others] (-split-readings readings)]
+      (concat [(-readings-to-event start)]
+              (-readings-to-events others)))))
   
 
 (defn -get-files
