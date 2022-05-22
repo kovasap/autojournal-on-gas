@@ -32,3 +32,7 @@
                 :lon "-142.31444892",
                 :lat "47.66866769"})))))
 
+
+(deftest many-readings-to-events
+  (is (= []
+         (loc/-readings-to-events []))))

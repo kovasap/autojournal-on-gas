@@ -33,5 +33,6 @@
                              [:description :string]]])))
 
 (def EventFetcher
-  [:=> [:cat Timestamp] ; Start time
+  [:=> [:cat Timestamp  ; Start time
+             Timestamp] ; End time
    [:sequential Event]])

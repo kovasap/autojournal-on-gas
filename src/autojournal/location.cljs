@@ -1,19 +1,9 @@
 (ns autojournal.location
   (:require [autojournal.drive :as drive]
-            [autojournal.schemas :refer [EventFetcher Event Date]]
+            [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
+            [cljs-time.core :as t]
             [cljs-time.coerce :refer [to-long from-long to-string from-string]]))
   
-(prn (drive/get-files "journal.txt"))
-
-(defn -date-to-file
-  {:malli/schema [:=> [:cat Date] :string]}
-  [{:keys [day month year]}]
-  (str year month day ".zip"))
-
-
-(to-long (from-string "2022-05-15T07:00:28.000Z"))
-
-
 (def -stationary-distance-miles
   "Distance between two readings for movement between them to be ignored."
   0.05)
@@ -86,25 +76,46 @@
    :lon (-average (map :lon readings))
    ; Accuracy is currently not used.
    :accuracy-miles 0})
-  
 
-(def -all-same-place-fraction-required
+(def -all-location-group-fraction-required
   "The fraction of points that must be within -stationary-distance-miles of
   each other for the whole cluster of points to be considered at the same
   place."
   0.9)
 
+(def TallyFunction
+  [:=> [:cat :any]
+   :int])
 
+(defn -enough-meet-criteria
+  {:malli/schema [:=> [:cat [:sequential :any] TallyFunction :double]
+                  :bool]}
+  [things tally-fn frac-required]
+  (let [total (count things)
+        matching (reduce + (for [thing things]
+                             (tally-fn thing)))]
+    (> (/ matching total)
+       frac-required)))
+  
 (defn -are-all-same-place
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   :bool]}
   [readings]
-  (let [midpoint (-get-midpoint readings)
-        total (count readings)
-        same (reduce + (for [reading readings]
-                         (if (-are-same-place midpoint reading) 1 0)))]
-    (> (/ same total)
-       -all-same-place-fraction-required)))
+  (-enough-meet-criteria
+    readings
+    (let [midpoint (-get-midpoint readings)]
+      (fn [reading] (if (-are-same-place midpoint reading) 1 0)))
+    -all-location-group-fraction-required))
+
+(defn -are-all-diff-place
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  :bool]}
+  [readings]
+  (-enough-meet-criteria
+    readings
+    (let [midpoint (-get-midpoint readings)]
+      (fn [reading] (if (-are-same-place midpoint reading) 0 1)))
+    -all-location-group-fraction-required))
 
 (-are-same-place
   (-row-to-reading
@@ -120,14 +131,25 @@
      :lon "-122.31444892",
      :lat "47.66866769"}))
 
+(def -min-window-size 3)
+
 (defn -split-readings
-  "Splits off the first set of readings that all occured in the same place."
+  "Splits off the first set of readings that all occured in the same place,
+  or all occured when travelling."
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   [:tuple [:sequential Reading] [:sequential Reading]]]}
   [readings]
-  [])
+  (loop [cur-size (+ 1 -min-window-size)]
+    (let [cur-window (take cur-size readings)]
+      (if (or (-are-all-same-place cur-window)
+              (-are-all-diff-place cur-window))
+        (recur (inc cur-size))
+        [(drop-last cur-window)
+         (drop (- cur-size 1) readings)]))))
 
 (defn -readings-to-event
+  "Converts a bunch of readings to a single event. Assumes the readings
+  happened in the same place."
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   Event]}
   [readings]
@@ -139,6 +161,8 @@
 
 
 (defn -readings-to-events
+  "Converts many readings to a series of events, with each event containing
+  readings in the same location, or that occured during a single travel."
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   [:sequential Event]]}
   [readings]
@@ -146,19 +170,47 @@
     []
     (let [[start others] (-split-readings readings)]
       (concat [(-readings-to-event start)]
-              (-readings-to-events others)))))
-  
+              (-readings-to-events others))))
 
-(defn -get-files
-  {:malli/schema [:=> [:cat [:sequential Date]] ; Start time
-                  [:sequential Event]]}
-  [days])
-  ; (for [day days]))
-    
-  
+ (defn -date-to-file
+  {:malli/schema [:=> [:cat Date] :string]}
+  [{:keys [day month year]}]
+  (str year month day ".zip")))
+
+(defn -get-readings-from-drive
+  {:malli/schema [:=> [:cat [:sequential Date]]
+                  [:sequential Reading]]}
+  [dates]
+  (let [rows (reduce concat
+                     (reduce concat
+                           (for [date dates]
+                             (drive/get-files (-date-to-file date)))))]
+    (map -row-to-reading rows)))
+
+
+(defn -datetime-to-date
+  [datetime]
+  {:day (t/day datetime)
+   :month (t/month datetime)
+   :year (t/year datetime)})
+
+(defn -dates-in-time-window
+  {:malli/schema [:=> [:cat Timestamp Timestamp]
+                  [:sequential Date]]}
+  [start-time end-time]
+  (let [start-datetime (from-long start-time)
+        end-datetime (from-long end-time)]
+    (loop [cur-datetime start-datetime
+           dates []]
+      (if (t/after? cur-datetime end-datetime)
+        dates
+        (recur 
+          (t/plus cur-datetime (t/days 1))
+          (conj dates (-datetime-to-date cur-datetime)))))))
 
 (defn get-events
   {:malli/schema EventFetcher}
-  [start-time])
-  
-  
+  [start-time end-time]
+  (-readings-to-events
+    (-get-readings-from-drive
+       (-dates-in-time-window start-time end-time))))
