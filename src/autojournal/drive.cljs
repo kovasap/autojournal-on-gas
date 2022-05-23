@@ -50,7 +50,8 @@
   
 (defn get-files
   [filename]
+  (prn filename)
   (env-switch
-    {:node #(prn filename)
+    {:node #(prn "get-files called with " filename)
      :app-script #(-get-file-contents
                     (-get-file-blob filename))}))

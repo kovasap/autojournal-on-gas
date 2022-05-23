@@ -1,6 +1,8 @@
 (defproject autojournal "0.1.0-SNAPSHOT"
   :plugins [[lein-cljsbuild "1.1.7"]
-            [reifyhealth/lein-git-down "0.4.1"]]
+            [reifyhealth/lein-git-down "0.4.1"]
+            [lein-cljfmt "0.8.0"]]
+
   :repositories [["public-github" {:url "git://github.com"}]]
   :description "A tool for collecting life events into a single log."
   :url "https://github.com/kovasap/autojournal-on-gas"
