@@ -8,3 +8,7 @@
      :app-script #(.. js/SpreadsheetApp
                     (openById id)
                     (appendRow (clj->js row)))}))
+
+(defn update-events!
+  []
+  )

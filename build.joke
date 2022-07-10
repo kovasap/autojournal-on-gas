@@ -19,6 +19,18 @@
   [s]
   (st/join "\n" (drop-last (st/split s "\n"))))
 
+(defn remove-es_2019
+  "Removes some code that is invalid GS and is otherwise seemingly unnecessary."
+  [s]
+  (st/replace
+    s
+    "
+  a(\"es_2019\", function() {
+    return b('let r;try{r\\x3d\" \"}catch{};r');
+  });"
+    ""))
+  
+
 (def frontmatter
   "var global = {}; var process = {\"argv\": [\"one\", \"two\"]};")
   
@@ -30,6 +42,7 @@
 ; https://clojurians.slack.com/archives/C6N245JGG/p1652646542137479 instead of
 ; this hacky file manipulation
 (let [code (-> (slurp "Code.js")
+               (remove-es_2019)
                (remove-first-line) ; Remove the #! line
                (remove-first-line) ; Remove the `(function(){` line
                (remove-last-line)  ; Remove a newline

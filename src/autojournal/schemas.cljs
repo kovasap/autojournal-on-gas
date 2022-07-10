@@ -19,7 +19,9 @@
         [:body-fat-percentable :double]])
 
 (def LocationEvent
-  [:map [:speed-m/s :double]])
+  [:map [:speed-m/s :double]
+        [:lat :double]
+        [:lon :double]])
 
 
 (def Event

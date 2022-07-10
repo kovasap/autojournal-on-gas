@@ -9,9 +9,12 @@ See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-scrip
 
 ## Setup
 
-  1. Install `lein`, `clasp`, `npm i shadow-cljs`, and `joker`
+  1. `sudo npm install -g @google/clasp`
+  1. `npm i shadow-cljs`
+  1. `sudo apt install joker`
   1. Clone this repository and cd into the base directory
   1. Set up a `clasp` project as instructed
+  1. If a project already exists, just `clasp login`.
 
 ## Deployment 
 
@@ -27,7 +30,7 @@ command:
 In one terminal, run:
 
 ```
-npx shadow-cljs watch autojournal
+npx shadow-cljs watch autojournal-for-node
 ```
 
 In another, run:
