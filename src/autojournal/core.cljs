@@ -16,7 +16,7 @@
   (prn "hi")
   (prn (into [] (for [file (drive/get-files "20220515.zip")]
                   file)))
-  (prn
+  (sheets/update-events!
     (location/get-events
       (to-long (date-time 2022 05 15))
       (to-long (date-time 2022 05 17))))

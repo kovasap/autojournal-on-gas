@@ -1,5 +1,6 @@
 (ns autojournal.sheets
-  (:require [autojournal.env-switching :refer [env-switch]]))
+  (:require [autojournal.env-switching :refer [env-switch]]
+            [autojournal.testing-utils :refer [assert=]]))
 
 (defn append!
   [id row]
@@ -9,6 +10,72 @@
                     (openById id)
                     (appendRow (clj->js row)))}))
 
-(defn update-events!
+(def lifelog-name "autojournal-lifelog")
+
+(defn -get-lifelog-sheet
+  "Creates the sheet if it doesn't exist."
   []
-  )
+  (let [existing-files (.. js/DriveApp (getFilesByName lifelog-name))]
+    (if (. existing-files hasNext) 
+      (. js/SpreadsheetApp open (. existing-files next))
+      (. js/SpreadsheetApp create lifelog-name))))
+
+
+(defn -update-headers
+  [maps headers]
+  (let [header-set (set headers)
+        all-keys (set (map name (reduce concat (map keys maps))))
+        new-headers (filter #(not (header-set %)) all-keys)]
+    (vec (concat headers new-headers))))
+
+(assert=
+  ["a" "b"]
+  (-update-headers
+    [{:a 1 :b 2}]
+    ["a"]))
+
+  
+(defn -map-to-vec
+  [m headers]
+  (into [] (for [h headers]
+             (if (contains? m (keyword h))
+               ((keyword h) m)
+               ""))))
+
+(assert=
+  [1 "" 3]
+  (-map-to-vec
+    {:a 1 :b 3}
+    ["a" "c" "b"]))
+
+
+(defn -pad-headers
+  [desired-size headers]
+  (concat headers (repeat (- desired-size (count headers))
+                          "")))
+
+(assert=
+  '("a" "b" "" "" "")
+  (-pad-headers
+    5 ["a" "b"]))
+
+
+(defn update-events!
+  [new-events]
+  (let [sheet (first (. (-get-lifelog-sheet) getSheets))
+        header-range (. sheet getRange "1:1")
+        headers (->> (. header-range getValues)
+                  (js->clj)
+                  (first)
+                  (filter #(not (= % "")))
+                  (-update-headers new-events)
+                  (-pad-headers (. header-range getWidth)))]
+    (prn "HEADERS")
+    (prn headers)
+    (. header-range setValues (clj->js [headers]))
+    (. sheet insertRows 2 (count new-events))
+    (. (. sheet getRange 2 1 (count new-events) (count headers))
+       setValues (clj->js (into [] (for [e new-events]
+                                     (-map-to-vec e headers)))))))
+    
+  
