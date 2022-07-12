@@ -78,6 +78,39 @@
    ; Accuracy is currently not used.
    :accuracy-miles 0})
 
+(defn -get-speed
+  "Calculates speed between two readings in MPH."
+  {:malli/schema [:=> [:cat Reading Reading]
+                  :double]}
+  [r1 r2]
+  (/ (-haversine-distance r1 r2)
+     (/ (Math/abs (- (:time r1) (:time r2)))
+        ; ms -> hours
+        1000 60 60)))
+
+; Could potentially use a speed cutoff to split readings into travelling /
+; not-travelling segments.
+(defn -get-avg-speed
+  "Calculates average speed between all readings in MPH."
+  {:malli/schema [:=> [:cat [:sequential Reading]]
+                  :double]}
+  [readings]
+  (-average
+    (for [[r1 r2] (partition 2 1 readings)]
+      (-get-speed r1 r2))))
+
+(assert=
+  0.005744751219511142
+  (-get-avg-speed
+    [{:time 1652598097000, :lat 47.66866761, :lon -122.31444817, 
+      :accuracy-miles 0.00466278101582015}
+     {:time 1652598130000, :lat 47.66866714, :lon -122.3144491, 
+      :accuracy-miles 0.0039966694421315575}
+     {:time 1652598180000, :lat 47.66866672, :lon -122.31445055, 
+      :accuracy-miles 0.009991673605328892}
+     {:time 1652598213000, :lat 47.66866612, :lon -122.31445134, 
+      :accuracy-miles 0.007327227310574521}]))
+
 (def -all-location-group-fraction-required
   "The fraction of points that must be within -stationary-distance-miles of
   each other for the whole cluster of points to be considered at the same
@@ -213,6 +246,7 @@
      :end (:time (last readings))
      :lat (:lat midpoint)
      :lon (:lon midpoint)
+     :speed-mph (-get-avg-speed readings)
      :summary (str "At " midpoint)}))
 
 
@@ -283,6 +317,7 @@
   '({:start 1652598028000,
      :end 1652601079000,
      :lat 47.66865123012048, :lon -122.31444797518073,
+     :speed-mph 0.0513941814803412,
      :summary
      "At {:time 1652599536992.9277, :lat 47.66865123012048, :lon -122.31444797518073, :accuracy-miles 0}"})
   (-readings-to-events
