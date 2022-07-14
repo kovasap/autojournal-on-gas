@@ -42,3 +42,5 @@ node dev-Code.js
 ## TODOs
 
  - Send emails with insights (perhaps with biomarker correlator links)
+ - Use notification emails from services (e.g. GitHub) as a way to get data into
+ the system
