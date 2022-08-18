@@ -1,5 +1,5 @@
-function main() {
-  autojournal.core.update_lifelog();
+function summarize_food() {
+  autojournal.core.summarize_food();
 }
 
 function add_today() {

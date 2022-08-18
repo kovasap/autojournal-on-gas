@@ -3,6 +3,7 @@
   ; goes to do the schema checking in the refresh function.
   (:require [autojournal.sheets :as sheets]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
+            [autojournal.food-summary :as food-summary]
             [autojournal.drive :as drive]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
@@ -23,7 +24,11 @@
   (sheets/append! "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc"
                   ["hello" "world"]))
 
-(defn main [] (update-lifelog))
+(defn ^:export summarize-food []
+  (food-summary/summarize-food))
+
+#_(defn main [] (update-lifelog))
+(defn main [] (summarize-food))
 
 (defn ^:dev/after-load refresh []
   (env-switch

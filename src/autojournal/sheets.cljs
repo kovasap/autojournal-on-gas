@@ -10,6 +10,18 @@
                     (openById id)
                     (appendRow (clj->js row)))}))
 
+(defn get-sheet-data
+  [id]
+  (env-switch
+    {:node #(prn id)
+     :app-script #(js->clj
+                    (.. js/SpreadsheetApp
+                      (openById id)
+                      (getSheetByName "Food")
+                      (getDataRange)
+                      (getValues)))}))
+ 
+
 (def lifelog-name "autojournal-lifelog")
 
 (defn -get-lifelog-sheet
@@ -79,3 +91,12 @@
                                      (-map-to-vec e headers)))))))
     
   
+(defn sheet-to-maps
+  "Converts a Google Sheet into a seq of maps"
+  [sheet-id]
+  (let [sheet-data (get-sheet-data sheet-id)
+        headers (map keyword (first sheet-data))
+        rows (rest sheet-data)]
+    (for [row rows]
+      (zipmap headers row))))
+
