@@ -1,7 +1,6 @@
 (ns autojournal.food-summary
   (:require [autojournal.sheets :as sheets]
-            [clojure.string :refer [split-lines includes? lower-case starts-with?
-                                    replace]]))
+            [clojure.string :refer [split-lines lower-case replace]]))
 
 (def food-sheet-id
   "1t0jgdXPyQesMadTbnIbQmYKxVJRxme9JlZkKy_gr-BI")

@@ -1,8 +1,7 @@
 (ns autojournal.schemas
   (:require [malli.core :as m]
             ; https://github.com/metosin/malli#programming-with-schemas
-            [malli.util :as mu]
-            [cljs-time.coerce :refer [to-long from-long to-string]]))
+            [malli.util :as mu]))
 
 
 (def Timestamp [:and :int [:>= 0]])
