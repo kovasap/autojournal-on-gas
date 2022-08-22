@@ -12,11 +12,12 @@
   
 
 (def FoodName :string)
+(def NutrientName :string)
 (def Food
   [:map [:quantity :double]
         [:quantity-units :string]
         [:name FoodName]
-        [:nutrients [:map-of :string :double]]])
+        [:nutrients [:map-of NutrientName :double]]])
 
 (def Meal
   [:map [:timestamp :any]  ; js datetime
@@ -24,13 +25,8 @@
         [:oil [:enum "None" "Light" "Medium" "Heavy"]]
         [:picture :string]]) 
 
-(defn todays-meals
-  {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
-  [food-data]
-  (let [today (js/Date.)]
-    (filter #(= (. today toDateString)
-                (. (:Timestamp %) toDateString))
-            food-data)))
+
+; ------------------------- Food Parsing ---------------------------------
 
 
 (defn numberify
@@ -90,18 +86,11 @@
   
 
 
-
-
-(defn generate-alt-names
-  {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
-  [food-name]
-  (let [no-punc (replace food-name #",|\." "")
-        no-descrip (first (split food-name #","))]
-    [no-punc no-descrip]))
-
 (def QuantityUnits :string)
 (def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
-  
+
+
+; -------------------- Food Database Use --------------------------  
 
 (defn parse-cronometer-db
   {:malli/schema [:=> [:cat] FoodDB]}
@@ -117,6 +106,13 @@
                                :quantity (js/parseFloat quantity)
                                :quantity-units units)
                         (dissoc "Day" "Time" "Group" "Food Name"))}])))
+
+(defn generate-alt-names
+  {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
+  [food-name]
+  (let [no-punc (replace food-name #",|\." "")
+        no-descrip (first (split food-name #","))]
+    [no-punc no-descrip]))
 
 
 (defn add-alt-names-to-food-db
@@ -161,15 +157,86 @@
   [meals food-db]
   (for [meal meals]
     (update meal :foods #(add-all-nutrients % food-db))))
-  
 
+
+; --------------- Report Email Construction -----------------------------
+
+(def Hiccup
+  [:schema
+   {:registry {"hiccup" [:orn
+                         [:node [:catn
+                                 [:name keyword?]
+                                 [:props [:? [:map-of keyword? any?]]]
+                                 [:children [:* [:schema [:ref "hiccup"]]]]]]
+                         [:primitive [:orn
+                                      [:nil nil?]
+                                      [:boolean boolean?]
+                                      [:number number?]
+                                      [:text string?]]]]}}
+   "hiccup"])
+
+
+(def nutrient-targets
+  {"Vitamin C (mg)"  1})
+
+
+(defn sum-food-nutrients
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                   [:map-of NutrientName :double]]}
+  [foods]
+  (reduce #(merge-with + %1 %2)
+          (map :nutrients foods)))
+
+
+(def PercentOfTarget :double)
+
+(defn get-deficient-nutrients
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                   [:vector-of [NutrientName PercentOfTarget]]]}
+  [foods]
+  (sort-by
+    #(%2)
+    (for [[nutrient amount] (sum-food-nutrients foods)
+          :let [percent-of-target (/ amount (get nutrient-targets nutrient))]
+          :when (< percent-of-target 1)]
+      [nutrient percent-of-target])))
+
+
+(defn nutrient-section
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                  Hiccup]}
+  [foods]
+  [:div
+   [:p "Eat more of these nutrients tomorrow:"
+    [:table
+      [:tbody
+    ;  https://www.w3schools.com/html/html_table_headers.asp
+       [:tr [:th "Nutrient"] [:th "Percent of Target"]]
+       (for [[nutrient percent-of-target] (get-deficient-nutrients foods)]
+         [:tr [:td nutrient] [:td percent-of-target]])]]]])
+   
+  
+   
 
 (defn build-report-email
   {:malli/schema [:=> [:cat [:sequential Meal]]
                   :string]}
-  [meals])
+  [meals]
+  (let [all-foods (reduce concat (map :foods meals))]
+    (html 
+      [:div
+       (nutrient-section all-foods)])))
   
-  
+
+; --------------- Main -----------------------------------------
+
+(defn todays-meals
+  {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
+  [food-data]
+  (let [today (js/Date.)]
+    (filter #(= (. today toDateString)
+                (. (:Timestamp %) toDateString))
+            food-data)))
 
 
 (defn send-daily-report
