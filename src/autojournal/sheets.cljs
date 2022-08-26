@@ -1,6 +1,7 @@
 (ns autojournal.sheets
   (:require [autojournal.env-switching :refer [env-switch]]
-            [autojournal.testing-utils :refer [assert=]]))
+            [autojournal.testing-utils :refer [assert=]]
+            [clojure.string :refer [ends-with?]]))
 
 (defn append!
   [id row]
@@ -95,16 +96,23 @@
   [sheet row]
   (. sheet (appendRow (clj->js row)))) 
 
+(defn all-keys
+  [maps]
+  (distinct (reduce concat (map keys maps))))
+
 (defn maps-to-sheet
-  "We assume all the maps have the same keys, that the maps are not nested,
-  and that the keys are strings."
+  "We assume that the maps are not nested, and that the keys are strings."
   [maps sheet-name]
   (let [sheet (.. js/SpreadsheetApp
                   (create sheet-name)
                   (getActiveSheet))
-        headers (keys (first maps))]
+        headers (sort-by #(cond
+                            (ends-with? % ")") (str "z" %)
+                            (= % "Food Name") (str "aa" %)
+                            :else %)
+                         (all-keys maps))]
     (append-row sheet headers)
-    (for [m maps]
+    (doseq [m maps]
       (append-row sheet (into [] (for [h headers] (get m h)))))))
 
 

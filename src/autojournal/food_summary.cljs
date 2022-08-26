@@ -3,9 +3,10 @@
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
-            [hiccup.core :refer [html]]
+            [hiccups.runtime :refer [render-html]]
             [clojure.set :refer [difference]]
-            [clojure.string :refer [split split-lines lower-case replace join]]))
+            [clojure.string :refer [split split-lines lower-case replace join
+                                    starts-with?]]))
 
 (def food-sheet-id
   "1t0jgdXPyQesMadTbnIbQmYKxVJRxme9JlZkKy_gr-BI")
@@ -67,12 +68,12 @@
   [food]
   (parse-food-units (lower-case food)))
 
-(doseq [[input expected]
-        [["three small potatoes" []]
-         ["half cup craisins" []]
-         ["1/3 cup popcorn kernels" []]
-         ["nectarine" []]]]
-  (assert= expected (parse-food input)))
+; (doseq [[input expected]
+;         [["three small potatoes" []]
+;          ["half cup craisins" []]
+;          ["1/3 cup popcorn kernels" []]
+;          ["nectarine" []]])
+;   (assert= expected (parse-food input)))
      
 
 (defn parse-foods
@@ -90,15 +91,16 @@
   
 
 
-(def QuantityUnits :string)
-(def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
-
-
 ; -------------------- Food Database Construction --------------------------  
+
+(defn stringify-keys
+  [m]
+  (into {} (for [[k v] m]
+             [(name k) v])))
 
 (defn get-cronometer-db-raw-rows
   []
-  (drive/get-files cronometer-export-filename))
+  (map stringify-keys (first (drive/get-files cronometer-export-filename))))
 
 
 ; A flattened food map pulled right from a cronometer export
@@ -109,10 +111,8 @@
   {:malli/schema [:=> [:cat RawCronFood RawCronFood]
                    RawCronFood]}
   [food1 food2]
-  (let [novel-food2-units (difference (set (keys food2)) (set (keys food1)))
-        new-unit (first novel-food2-units)]
-    (assert (#{0 1} (count novel-food2-units)))
-    (if (empty? novel-food2-units)
+  (let [new-unit (first (filter #(starts-with? % "Amount ") (keys food2)))]
+    (if (contains? food1 new-unit)
       (do (assert= food1 food2)
           food1)
       ; We need to scale the units.
@@ -120,26 +120,29 @@
       (let [cals1 (get food1 "Energy (kcal)")
             cals2 (get food2 "Energy (kcal)")
             factor (/ cals1 cals2)]
-        (assoc food1 new-unit (* factor (get new-unit food2)))))))
-
-(def RawCronDb [:map-of FoodName RawCronFood])
+        (assoc food1 new-unit (* factor (get food2 new-unit)))))))
 
 (defn floatify-vals
   [m]
-  (into {} (for [[k v] m]
-             [k (js/parseFloat v)])))
+  (into {} (for [[k v] m
+                 :let [floatv (js/parseFloat v)]]
+             [k (if (js/Number.isNaN floatv) v floatv)])))
 
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
   [food-name]
   (let [no-punc (replace food-name #",|\." "")
         no-descrip (first (split food-name #","))]
-    (map lower-case [no-punc no-descrip])))
+    (distinct (map lower-case [no-punc no-descrip]))))
 
 (defn parse-cronometer-db
   {:malli/schema [:=> [:cat [:map-of :string :string]
                        [:sequential RawCronFood]]]}
   [rows]
+  ; For getting test data.
+  ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
+  ;                             "Carbs (g)"
+  ;            (take 3 rows)]
   (vals
     ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
     (apply merge-with merge-food-units
@@ -148,11 +151,56 @@
                        [quantity units] (split (get row "Amount") #" " 2)]]
              {food-name
                (-> row
-                   (dissoc "Day" "Time" "Group" "Food Name" "Amount")
+                   (dissoc "Day" "Time" "Group" "Amount")
                    (floatify-vals)
-                   (assoc "Name" food-name
-                          "Aliases" (generate-alt-names food-name)
-                          units (js/parseFloat quantity)))}))))
+                   (assoc "Aliases" (join "\n" (generate-alt-names food-name))
+                          (str "Amount " units) (js/parseFloat quantity)))}))))
+
+(assert=
+  '({"Category" "Vegetables and Vegetable Products",
+     "Energy (kcal)" 164.35,
+     "Carbs (g)" 37.09,
+     "Aliases" "potatoes russet flesh and skin baked\npotatoes",
+     "Food Name" "Potatoes, Russet, Flesh and Skin, Baked"
+     "Amount potato medium (2-1/4\" to 3-1/4\" dia.)" 1}
+    {"Category" "Breakfast Cereals",
+     "Energy (kcal)" 100,
+     "Carbs (g)" 50,
+     "Aliases" "oatmeal regular or quick dry\noatmeal",
+     "Food Name" "Oatmeal, Regular or Quick, Dry"
+     "Amount g" 100,
+     "Amount cups" 50}
+    {"Category" "Beverages",
+     "Energy (kcal)" 0,
+     "Carbs (g)" 0,
+     "Aliases" "tap water",
+     "Food Name" "Tap Water"
+     "Amount g" 1000})
+  (parse-cronometer-db
+    [{"Category" "Vegetables and Vegetable Products", "Food Name" "Potatoes, Russet, Flesh and Skin, Baked", "Amount" "1.00 potato medium (2-1/4\" to 3-1/4\" dia.)", "Energy (kcal)" "164.35", "Carbs (g)" "37.09"}
+     {"Category" "Breakfast Cereals", "Food Name" "Oatmeal, Regular or Quick, Dry", "Amount" "100.00 g", "Energy (kcal)" "100.00", "Carbs (g)" "50.00"}
+     {"Category" "Breakfast Cereals", "Food Name" "Oatmeal, Regular or Quick, Dry", "Amount" "100.00 cups", "Energy (kcal)" "200.00", "Carbs (g)" "100.00"}
+     {"Category" "Beverages", "Food Name" "Tap Water", "Amount" "1000.00 g", "Energy (kcal)" "0.00", "Carbs (g)" "0.00"}]))
+
+(defn print+return [x] (prn x) x)
+
+(defn ^:export make-new-food-db-sheet
+  []
+  (sheets/maps-to-sheet
+    (print+return (parse-cronometer-db (get-cronometer-db-raw-rows)))
+    "Food Database"))
+
+; --------------------- Food Database Retrival and Access --------------------
+
+(def QuantityUnits :string)
+(def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
+
+
+(defn get-food-db
+  []
+  {})
+
+
 
 ; (defn add-alt-names-to-food-db
 ;   {:malli/schema [:=> [:cat FoodDB] FoodDB]}
@@ -162,12 +210,6 @@
 ;     (for [[food-name food] db]
 ;       (into {} (for [alt-name (generate-alt-names food-name)]
 ;                  [alt-name food])))))
-
-
-(defn get-food-db
-  {:malli/schema [:=> [:cat] FoodDB]}
-  []
-  (add-alt-names-to-food-db (parse-cronometer-db)))
 
 
 (defn add-nutrients
@@ -198,10 +240,6 @@
     (update meal :foods #(add-all-nutrients % food-db))))
 
 
-(defn make-new-food-db-sheet
-  [])
-  
-
 
 ; --------------- Report Email Construction -----------------------------
 
@@ -221,9 +259,9 @@
 
 
 (defn get-nutrient-targets
+  "Returns a map like {\"Vitamin C (mg)\"  1}"
   {:malli/schema [:=> [:cat]
                   [:map-of [NutrientName :double]]]}
-  "Returns a map like {\"Vitamin C (mg)\"  1}"
   []
   (sheets/transposed-sheet-to-maps nutrient-targets-sheet-id))
 
@@ -273,7 +311,7 @@
                   :string]}
   [meals]
   (let [all-foods (reduce concat (map :foods meals))]
-    (html 
+    (render-html 
       [:div
        (nutrient-section all-foods)])))
   

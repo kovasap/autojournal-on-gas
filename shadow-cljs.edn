@@ -4,7 +4,7 @@
  :dependencies [[metosin/malli "0.8.4"]
                 [cljfmt "0.5.1"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
-                [hiccup "1.0.5"]]
+                [hiccups "0.3.0"]]
 
  :builds
  {:test                 {:target :node-test

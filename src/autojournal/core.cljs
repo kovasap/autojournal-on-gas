@@ -27,8 +27,7 @@
 (defn ^:export summarize-food []
   (food-summary/send-daily-report))
 
-#_(defn main [] (update-lifelog))
-(defn main [] (summarize-food))
+(defn main [])
 
 (defn ^:dev/after-load refresh []
   (env-switch
