@@ -4,6 +4,7 @@
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
             [hiccup.core :refer [html]]
+            [clojure.set :refer [difference]]
             [clojure.string :refer [split split-lines lower-case replace join]]))
 
 (def food-sheet-id
@@ -105,56 +106,62 @@
   [:map-of :string :string])
 
 (defn merge-food-units
-  {:malli/schema [:=> [:cat [:map-of QuantityUnits RawCronFood]
-                            [:map-of QuantityUnits RawCronFood]]
-                  [:map-of QuantityUnits RawCronFood]]}
-  [units-to-food1 units-to-food2]
-  (assert (= 1 (count units-to-food2)))
-  (let [unit2 (first (keys units-to-food2))
-        food2 (first (vals units-to-food2))]
-    (if (contains? units-to-food1 unit2)
-      units-to-food1
-      ; We need to scale the units
-      (let [arbitrary-food1-unit (first (keys units-to-food1))
-            arbitrary-food1 (get units-to-food1 arbitrary-food1-unit)
-            cals1 (get arbitrary-food1 "Energy (kcal)")
+  {:malli/schema [:=> [:cat RawCronFood RawCronFood]
+                   RawCronFood]}
+  [food1 food2]
+  (let [novel-food2-units (difference (set (keys food2)) (set (keys food1)))
+        new-unit (first novel-food2-units)]
+    (assert (#{0 1} (count novel-food2-units)))
+    (if (empty? novel-food2-units)
+      (do (assert= food1 food2)
+          food1)
+      ; We need to scale the units.
+      ; We are using calories here to do this but could in theory use anything.
+      (let [cals1 (get food1 "Energy (kcal)")
             cals2 (get food2 "Energy (kcal)")
-            factor (/ cals1 cals2)
-            scaled-units-to-food2 (into {} (for [[k v] units-to-food2
-                                                 :when (not (#{"Name"} k))]
-                                             [k (* factor v)]))]
-        (merge units-to-food1 scaled-units-to-food2)))))
+            factor (/ cals1 cals2)]
+        (assoc food1 new-unit (* factor (get new-unit food2)))))))
 
-(defn parse-cronometer-db
-  {:malli/schema [:=> [:cat [:map-of :string :string] FoodDB]]}
-  [rows]
-  ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
-  (apply merge-with merge-food-units
-         (for [row rows
-               :let [food-name (get row "Food Name")
-                     [quantity units] (split (get row "Amount") #" " 2)]]
-           {food-name
-            {units (-> row
-                       (assoc "Name" food-name
-                              "Quantity" (js/parseFloat quantity))
-                       (dissoc "Day" "Time" "Group" "Food Name" "Amount"))}})))
+(def RawCronDb [:map-of FoodName RawCronFood])
+
+(defn floatify-vals
+  [m]
+  (into {} (for [[k v] m]
+             [k (js/parseFloat v)])))
 
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
   [food-name]
   (let [no-punc (replace food-name #",|\." "")
         no-descrip (first (split food-name #","))]
-    [no-punc no-descrip]))
+    (map lower-case [no-punc no-descrip])))
 
+(defn parse-cronometer-db
+  {:malli/schema [:=> [:cat [:map-of :string :string]
+                       [:sequential RawCronFood]]]}
+  [rows]
+  (vals
+    ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
+    (apply merge-with merge-food-units
+           (for [row rows
+                 :let [food-name (get row "Food Name")
+                       [quantity units] (split (get row "Amount") #" " 2)]]
+             {food-name
+               (-> row
+                   (dissoc "Day" "Time" "Group" "Food Name" "Amount")
+                   (floatify-vals)
+                   (assoc "Name" food-name
+                          "Aliases" (generate-alt-names food-name)
+                          units (js/parseFloat quantity)))}))))
 
-(defn add-alt-names-to-food-db
-  {:malli/schema [:=> [:cat FoodDB] FoodDB]}
-  [db]
-  (reduce
-    merge
-    (for [[food-name food] db]
-      (into {} (for [alt-name (generate-alt-names food-name)]
-                 [alt-name food])))))
+; (defn add-alt-names-to-food-db
+;   {:malli/schema [:=> [:cat FoodDB] FoodDB]}
+;   [db]
+;   (reduce
+;     merge
+;     (for [[food-name food] db]
+;       (into {} (for [alt-name (generate-alt-names food-name)]
+;                  [alt-name food])))))
 
 
 (defn get-food-db
