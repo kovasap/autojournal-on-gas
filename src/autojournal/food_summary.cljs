@@ -3,12 +3,15 @@
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
+            [hiccup.core :refer [html]]
             [clojure.string :refer [split split-lines lower-case replace join]]))
 
 (def food-sheet-id
   "1t0jgdXPyQesMadTbnIbQmYKxVJRxme9JlZkKy_gr-BI")
 (def cronometer-export-filename
   "cronometer.csv")
+(def nutrient-targets-sheet-id
+  "1bz_n3VlnejYkCr1uaieYFir3ajvyP4IVva6tOvW1nhI")
   
 
 (def FoodName :string)
@@ -90,22 +93,51 @@
 (def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
 
 
-; -------------------- Food Database Use --------------------------  
+; -------------------- Food Database Construction --------------------------  
+
+(defn get-cronometer-db-raw-rows
+  []
+  (drive/get-files cronometer-export-filename))
+
+
+; A flattened food map pulled right from a cronometer export
+(def RawCronFood
+  [:map-of :string :string])
+
+(defn merge-food-units
+  {:malli/schema [:=> [:cat [:map-of QuantityUnits RawCronFood]
+                            [:map-of QuantityUnits RawCronFood]]
+                  [:map-of QuantityUnits RawCronFood]]}
+  [units-to-food1 units-to-food2]
+  (assert (= 1 (count units-to-food2)))
+  (let [unit2 (first (keys units-to-food2))
+        food2 (first (vals units-to-food2))]
+    (if (contains? units-to-food1 unit2)
+      units-to-food1
+      ; We need to scale the units
+      (let [arbitrary-food1-unit (first (keys units-to-food1))
+            arbitrary-food1 (get units-to-food1 arbitrary-food1-unit)
+            cals1 (get arbitrary-food1 "Energy (kcal)")
+            cals2 (get food2 "Energy (kcal)")
+            factor (/ cals1 cals2)
+            scaled-units-to-food2 (into {} (for [[k v] units-to-food2
+                                                 :when (not (#{"Name"} k))]
+                                             [k (* factor v)]))]
+        (merge units-to-food1 scaled-units-to-food2)))))
 
 (defn parse-cronometer-db
-  {:malli/schema [:=> [:cat] FoodDB]}
-  []
+  {:malli/schema [:=> [:cat [:map-of :string :string] FoodDB]]}
+  [rows]
   ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
-  (reduce #(merge-with merge %1 %2)
-          (for [row (drive/get-files cronometer-export-filename)
-                :let [food-name (lower-case (get row "Food Name"))
-                      [quantity units] (split (get row "Amount") #" " 2)]]
-            [food-name
-             {units (-> row
-                        (assoc :name food-name
-                               :quantity (js/parseFloat quantity)
-                               :quantity-units units)
-                        (dissoc "Day" "Time" "Group" "Food Name"))}])))
+  (apply merge-with merge-food-units
+         (for [row rows
+               :let [food-name (get row "Food Name")
+                     [quantity units] (split (get row "Amount") #" " 2)]]
+           {food-name
+            {units (-> row
+                       (assoc "Name" food-name
+                              "Quantity" (js/parseFloat quantity))
+                       (dissoc "Day" "Time" "Group" "Food Name" "Amount"))}})))
 
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
@@ -159,6 +191,11 @@
     (update meal :foods #(add-all-nutrients % food-db))))
 
 
+(defn make-new-food-db-sheet
+  [])
+  
+
+
 ; --------------- Report Email Construction -----------------------------
 
 (def Hiccup
@@ -176,8 +213,13 @@
    "hiccup"])
 
 
-(def nutrient-targets
-  {"Vitamin C (mg)"  1})
+(defn get-nutrient-targets
+  {:malli/schema [:=> [:cat]
+                  [:map-of [NutrientName :double]]]}
+  "Returns a map like {\"Vitamin C (mg)\"  1}"
+  []
+  (sheets/transposed-sheet-to-maps nutrient-targets-sheet-id))
+
 
 
 (defn sum-food-nutrients
@@ -190,16 +232,17 @@
 
 (def PercentOfTarget :double)
 
-(defn get-deficient-nutrients
+(defn get-off-target-nutrients
   {:malli/schema [:=> [:cat [:sequential Food]]
                    [:vector-of [NutrientName PercentOfTarget]]]}
   [foods]
-  (sort-by
-    #(%2)
-    (for [[nutrient amount] (sum-food-nutrients foods)
-          :let [percent-of-target (/ amount (get nutrient-targets nutrient))]
-          :when (< percent-of-target 1)]
-      [nutrient percent-of-target])))
+  (let [nutrient-targets (get-nutrient-targets)]
+    (sort-by
+      #(%2)
+      (for [[nutrient amount] (sum-food-nutrients foods)
+            :let [percent-of-target (/ amount (get nutrient-targets nutrient))]
+            :when (or (> percent-of-target 2) (< percent-of-target 1))]
+        [nutrient percent-of-target]))))
 
 
 (defn nutrient-section
@@ -207,12 +250,12 @@
                   Hiccup]}
   [foods]
   [:div
-   [:p "Eat more of these nutrients tomorrow:"
+   [:p "Eat more or less of these nutrients tomorrow:"
     [:table
       [:tbody
     ;  https://www.w3schools.com/html/html_table_headers.asp
        [:tr [:th "Nutrient"] [:th "Percent of Target"]]
-       (for [[nutrient percent-of-target] (get-deficient-nutrients foods)]
+       (for [[nutrient percent-of-target] (get-off-target-nutrients foods)]
          [:tr [:td nutrient] [:td percent-of-target]])]]]])
    
   
@@ -239,6 +282,7 @@
             food-data)))
 
 
+; TODO think about making this weekly instead
 (defn send-daily-report
   []
   (let [food-db (get-food-db)

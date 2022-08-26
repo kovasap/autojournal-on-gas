@@ -3,7 +3,9 @@
 {:source-paths ["src"]
  :dependencies [[metosin/malli "0.8.4"]
                 [cljfmt "0.5.1"]
-                [com.andrewmcveigh/cljs-time "0.5.2"]]
+                [com.andrewmcveigh/cljs-time "0.5.2"]
+                [hiccup "1.0.5"]]
+
  :builds
  {:test                 {:target :node-test
                          :output-to "node-tests.js"
@@ -19,5 +21,3 @@
                                             :pretty-print true}
                          :externs ["resources/gas.ext.js"]
                          :output-to "Code.js"}}}
-
-

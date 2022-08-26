@@ -89,8 +89,25 @@
     (. (. sheet getRange 2 1 (count new-events) (count headers))
        setValues (clj->js (into [] (for [e new-events]
                                      (-map-to-vec e headers)))))))
-    
-  
+
+(defn append-row
+  "Row is a vector of primitives."
+  [sheet row]
+  (. sheet (appendRow (clj->js row)))) 
+
+(defn maps-to-sheet
+  "We assume all the maps have the same keys, that the maps are not nested,
+  and that the keys are strings."
+  [maps sheet-name]
+  (let [sheet (.. js/SpreadsheetApp
+                  (create sheet-name)
+                  (getActiveSheet))
+        headers (keys (first maps))]
+    (append-row sheet headers)
+    (for [m maps]
+      (append-row sheet (into [] (for [h headers] (get m h)))))))
+
+
 (defn sheet-to-maps
   "Converts a Google Sheet into a seq of maps"
   [sheet-id]
@@ -100,3 +117,16 @@
     (for [row rows]
       (zipmap headers row))))
 
+
+(defn transpose [m]
+  (apply mapv vector m))
+
+(defn transposed-sheet-to-maps
+  "Converts a Google Sheet into a seq of maps where the keys are the first
+  column."
+  [sheet-id]
+  (let [sheet-data (transpose (get-sheet-data sheet-id))
+        headers (map keyword (first sheet-data))
+        rows (rest sheet-data)]
+    (for [row rows]
+      (zipmap headers row))))
