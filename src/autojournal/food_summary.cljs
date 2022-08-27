@@ -6,12 +6,13 @@
             [hiccups.runtime :refer [render-html]]
             [clojure.set :refer [difference]]
             [clojure.string :refer [split split-lines lower-case replace join
-                                    starts-with?]]))
+                                    starts-with? includes? trim]]))
 
-(def food-sheet-id
-  "1t0jgdXPyQesMadTbnIbQmYKxVJRxme9JlZkKy_gr-BI")
+(def food-sheet-name "Food")
+(def food-db-sheet-name "Food Database")
 (def cronometer-export-filename
   "cronometer.csv")
+; TODO Make this reference a sheet name
 (def nutrient-targets-sheet-id
   "1bz_n3VlnejYkCr1uaieYFir3ajvyP4IVva6tOvW1nhI")
   
@@ -135,6 +136,18 @@
         no-descrip (first (split food-name #","))]
     (distinct (map lower-case [no-punc no-descrip]))))
 
+(defn simplify-unit
+  [unit]
+  ((comp
+    trim
+    #(get {"tablespoon" "tbsp"
+           "cups" "cup"}
+          % %)
+    #(if (includes? % ",") (first (split % #",")) %)
+    #(if (includes? % "-") (first (split % #"-")) %)
+    lower-case)
+   unit))
+
 (defn parse-cronometer-db
   {:malli/schema [:=> [:cat [:map-of :string :string]
                        [:sequential RawCronFood]]]}
@@ -143,18 +156,18 @@
   ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
   ;                             "Carbs (g)"
   ;            (take 3 rows)]
-  (vals
-    ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
-    (apply merge-with merge-food-units
-           (for [row rows
-                 :let [food-name (get row "Food Name")
-                       [quantity units] (split (get row "Amount") #" " 2)]]
-             {food-name
-               (-> row
-                   (dissoc "Day" "Time" "Group" "Amount")
-                   (floatify-vals)
-                   (assoc "Aliases" (join "\n" (generate-alt-names food-name))
-                          (str "Amount " units) (js/parseFloat quantity)))}))))
+  ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
+  (vals (apply merge-with merge-food-units
+               (for [row rows
+                     :let [food-name (get row "Food Name")
+                           [quantity units] (split (get row "Amount") #" " 2)]]
+                 {food-name
+                   (-> row
+                    (dissoc "Day" "Time" "Group" "Amount")
+                    (floatify-vals)
+                    (assoc "Aliases" (join "\n" (generate-alt-names food-name))
+                           (str "Amount " (simplify-unit units))
+                           (js/parseFloat quantity)))}))))
 
 (assert=
   '({"Category" "Vegetables and Vegetable Products",
@@ -197,8 +210,9 @@
 
 
 (defn get-food-db
+  {:malli/schema [:=> [:cat] FoodDB]}
   []
-  {})
+  (let [raw-db (drive/get-files food-db-sheet-name)]))
 
 
 
@@ -331,7 +345,7 @@
 (defn send-daily-report
   []
   (let [food-db (get-food-db)
-        all-meals (map row->meal (sheets/sheet-to-maps food-sheet-id))
+        all-meals (map row->meal (drive/get-files food-sheet-name))
         email-body (-> (todays-meals all-meals)
                        (add-all-nutrients-to-meals food-db)
                        (build-report-email))]

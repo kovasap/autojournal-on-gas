@@ -1,13 +1,16 @@
 (ns autojournal.drive
   (:require [autojournal.env-switching :refer [env-switch]]
+            [autojournal.sheets :refer [sheet-to-maps]]
             [clojure.string :refer [ends-with?]]))
 
-(defn -get-file-blob
+(defn -get-file
   [filename]
-  (.. js/DriveApp
-      (getFilesByName filename)
-      (next)
-      (getBlob)))
+  (let [files (.. js/DriveApp (getFilesByName filename))
+        num-files (count files)]
+    (cond
+     (= 0 num-files) (prn "No files with name " filename)
+     (< 1 num-files) (prn (str num-files) " files with name " filename)
+     :else (.next files))))
 
 (defn -two-d-array-to-maps
   [two-d-array]
@@ -41,12 +44,15 @@
                 (.unzip js/Utilities zip-blob))))
 
 (defn -get-file-contents
-  [blob]
-  (prn (.getName blob))
-  (cond 
-    (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
-    (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
-    :else [(.getDataAsString blob)])) 
+  [file]
+  (let [blob (.getBlob file)
+        id (.getId file)]
+    (cond 
+      (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
+      (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
+      (= (.getMimeType file)
+         "application/vnd.google-apps.spreadsheet") [(sheet-to-maps id)]
+      :else [(.getDataAsString blob)]))) 
   
 (defn get-files
   [filename]
@@ -54,4 +60,4 @@
   (env-switch
     {:node #(prn "get-files called with " filename)
      :app-script #(-get-file-contents
-                    (-get-file-blob filename))}))
+                    (-get-file filename))}))
