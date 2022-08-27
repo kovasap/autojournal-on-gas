@@ -4,7 +4,7 @@
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
             [hiccups.runtime :refer [render-html]]
-            [clojure.set :refer [difference]]
+            [clojure.set :refer [union]]
             [clojure.string :refer [split split-lines lower-case replace join
                                     starts-with? includes? trim]]))
 
@@ -103,6 +103,13 @@
   []
   (map stringify-keys (first (drive/get-files cronometer-export-filename))))
 
+(defn get-existing-aliases
+  {:malli/schema [:=> [:cat] [:map-of FoodName [:sequential FoodName]]]}
+  []
+  [into {} (for [row (drive/get-files food-db-sheet-name)]
+             [(get row "Food Name")
+              (split (get row "Aliases") #"\n")])])
+    
 
 ; A flattened food map pulled right from a cronometer export
 (def RawCronFood
@@ -149,25 +156,29 @@
    unit))
 
 (defn parse-cronometer-db
-  {:malli/schema [:=> [:cat [:map-of :string :string]
-                       [:sequential RawCronFood]]]}
+  {:malli/schema [:=> [:cat [:map-of :string :string]]
+                   [:sequential RawCronFood]]}
   [rows]
   ; For getting test data.
   ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
   ;                             "Carbs (g)"
   ;            (take 3 rows)]
-  ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
-  (vals (apply merge-with merge-food-units
-               (for [row rows
-                     :let [food-name (get row "Food Name")
-                           [quantity units] (split (get row "Amount") #" " 2)]]
-                 {food-name
-                   (-> row
-                    (dissoc "Day" "Time" "Group" "Amount")
-                    (floatify-vals)
-                    (assoc "Aliases" (join "\n" (generate-alt-names food-name))
-                           (str "Amount " (simplify-unit units))
-                           (js/parseFloat quantity)))}))))
+  (let [aliases (get-existing-aliases)]
+    ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
+    (vals (apply merge-with merge-food-units
+                 (for [row rows
+                       :let [food-name (get row "Food Name")
+                             [quantity units] (split (get row "Amount") #" " 2)]]
+                   {food-name
+                     (-> row
+                      (dissoc "Day" "Time" "Group" "Amount")
+                      (floatify-vals)
+                      (assoc "Aliases"
+                             (join "\n"
+                                   (union (set (generate-alt-names food-name))
+                                          (set (get aliases "Food Name"))))
+                             (str "Amount " (simplify-unit units))
+                             (js/parseFloat quantity)))})))))
 
 (assert=
   '({"Category" "Vegetables and Vegetable Products",
@@ -208,11 +219,38 @@
 (def QuantityUnits :string)
 (def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
 
+(defn get-amount-fields
+  [row]
+  (for [[k quantity] row
+        :when (starts-with? "Amount " k)
+        :let [unit (replace k #"Amount " "")]]
+    [k unit quantity]))
+    
+
+(defn raw-db-row->food
+  [row unit]
+  {:name (get row "Food Name")
+   :quantity (first (for [[_ aunit quantity] (get-amount-fields row)
+                          :when (= unit aunit)]
+                      quantity))
+   :quantity-units unit
+   :nutrients (apply dissoc row
+                     (concat ["Food Name" "Aliases" "Category"]
+                             (for [[k _ _] (get-amount-fields row)] k)))})
 
 (defn get-food-db
   {:malli/schema [:=> [:cat] FoodDB]}
   []
-  (let [raw-db (drive/get-files food-db-sheet-name)]))
+  (let [raw-db (map floatify-vals (drive/get-files food-db-sheet-name))]
+    (for [row raw-db]
+      (merge
+        (for [alt-name (get row "Aliases")]
+          {alt-name
+            (merge (for [[_ unit quantity] (get-amount-fields row)
+                         :when (double? quantity)]
+                     {unit [(raw-db-row->food row unit)]}))})))))
+        
+    
 
 
 
