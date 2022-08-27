@@ -1,11 +1,10 @@
-; Run :ConjureShadowSelect autojournal in nvim to use repl.
-; A browser must be loaded with project code for this to work.
 {:source-paths ["src"]
  :dependencies [[metosin/malli "0.8.4"]
                 [cljfmt "0.5.1"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
                 [hiccups "0.3.0"]
-                [com.github.jpmonettas/flow-storm-inst "RELEASE"]]
+                [com.github.jpmonettas/flow-storm-inst "RELEASE"]
+                [philoskim/debux "0.8.2"]]
 
  :builds
  {:test                 {:target :node-test

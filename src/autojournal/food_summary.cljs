@@ -2,7 +2,7 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
-            [autojournal.testing-utils :refer [assert= pr]]
+            [autojournal.testing-utils :refer [assert=]]
             [hiccups.runtime :refer [render-html]]
             [clojure.set :refer [union]]
             [clojure.string :refer [split split-lines lower-case replace join
