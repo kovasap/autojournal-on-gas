@@ -5,12 +5,16 @@
 
 (defn -get-file
   [filename]
-  (let [files (.. js/DriveApp (getFilesByName filename))
+  (let [file-iterator (.. js/DriveApp (getFilesByName filename))
+        files (loop [acc []]
+                (if (.hasNext file-iterator)
+                  (recur (conj acc (.next file-iterator)))
+                  acc))
         num-files (count files)]
     (cond
-     (= 0 num-files) (prn "No files with name " filename)
-     (< 1 num-files) (prn (str num-files) " files with name " filename)
-     :else (.next files))))
+     (= 0 num-files) (prn (str "No files with name " filename))
+     (< 1 num-files) (prn (str num-files " files with name " filename))
+     :else (first files))))
 
 (defn -two-d-array-to-maps
   [two-d-array]
@@ -45,19 +49,21 @@
 
 (defn -get-file-contents
   [file]
-  (let [blob (.getBlob file)
-        id (.getId file)]
-    (cond 
-      (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
-      (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
-      (= (.getMimeType file)
-         "application/vnd.google-apps.spreadsheet") [(sheet-to-maps id)]
-      :else [(.getDataAsString blob)]))) 
+  (if (nil? file)
+    []
+    (let [blob (.getBlob file)
+          id (.getId file)]
+      (cond 
+        (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
+        (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
+        (= (.getMimeType file)
+           "application/vnd.google-apps.spreadsheet") [(sheet-to-maps id)]
+        :else [(.getDataAsString blob)])))) 
   
 (defn get-files
   [filename]
-  (prn filename)
+  (prn (str "Getting " filename))
   (env-switch
-    {:node #(prn "get-files called with " filename)
+    {:node #(prn (str "get-files called with " filename))
      :app-script #(-get-file-contents
                     (-get-file filename))}))

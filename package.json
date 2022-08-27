@@ -23,5 +23,8 @@
   "homepage": "https://github.com/kovasap/autojournal-on-gas#readme",
   "devDependencies": {
     "shadow-cljs": "^2.19.5"
+  },
+  "dependencies": {
+    "websocket": "^1.0.34"
   }
 }

@@ -4,7 +4,8 @@
  :dependencies [[metosin/malli "0.8.4"]
                 [cljfmt "0.5.1"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
-                [hiccups "0.3.0"]]
+                [hiccups "0.3.0"]
+                [com.github.jpmonettas/flow-storm-inst "RELEASE"]]
 
  :builds
  {:test                 {:target :node-test

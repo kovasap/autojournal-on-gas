@@ -18,7 +18,7 @@
      :app-script #(js->clj
                     (.. js/SpreadsheetApp
                       (openById id)
-                      (getSheetByName "Food")
+                      (getActiveSheet)
                       (getDataRange)
                       (getValues)))}))
  
@@ -108,7 +108,7 @@
                   (getActiveSheet))
         headers (sort-by #(cond
                             (ends-with? % ")") (str "z" %)
-                            (= % "Food Name") (str "aa" %)
+                            (= % "Food Name") (str "AA" %)
                             :else %)
                          (all-keys maps))]
     (append-row sheet headers)

@@ -2,7 +2,7 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
-            [autojournal.testing-utils :refer [assert=]]
+            [autojournal.testing-utils :refer [assert= pr]]
             [hiccups.runtime :refer [render-html]]
             [clojure.set :refer [union]]
             [clojure.string :refer [split split-lines lower-case replace join
@@ -99,16 +99,16 @@
   (into {} (for [[k v] m]
              [(name k) v])))
 
-(defn get-cronometer-db-raw-rows
-  []
-  (map stringify-keys (first (drive/get-files cronometer-export-filename))))
+(defn get-raw-rows
+  [filename]
+  (map stringify-keys (first (drive/get-files filename))))
 
 (defn get-existing-aliases
   {:malli/schema [:=> [:cat] [:map-of FoodName [:sequential FoodName]]]}
   []
-  [into {} (for [row (drive/get-files food-db-sheet-name)]
+  (into {} (for [row (get-raw-rows food-db-sheet-name)]
              [(get row "Food Name")
-              (split (get row "Aliases") #"\n")])])
+              (split (get row "Aliases") #"\n")])))
     
 
 ; A flattened food map pulled right from a cronometer export
@@ -144,16 +144,27 @@
     (distinct (map lower-case [no-punc no-descrip]))))
 
 (defn simplify-unit
-  [unit]
-  ((comp
-    trim
-    #(get {"tablespoon" "tbsp"
-           "cups" "cup"}
-          % %)
-    #(if (includes? % ",") (first (split % #",")) %)
-    #(if (includes? % "-") (first (split % #"-")) %)
-    lower-case)
-   unit))
+  [units]
+  (if (nil? units)
+    "serving"
+    ((comp
+      #(if (#{"sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
+              "dash" "per portion" "slice"} %)
+         "serving" %)
+      trim
+      #(get {"tablespoon" "tbsp"
+             "teaspoon" "tsp"
+             "cups" "cup"}
+            % %)
+      #(if (includes? % ",") (first (split % #",")) %)
+      #(if (includes? % "-") (first (split % #"-")) %)
+      #(cond
+         (includes? % "small") "small"
+         (includes? % "medium") "medium"
+         (includes? % "large") "large"
+         :else %)
+      lower-case)
+     units)))
 
 (defn parse-cronometer-db
   {:malli/schema [:=> [:cat [:map-of :string :string]]
@@ -176,29 +187,29 @@
                       (assoc "Aliases"
                              (join "\n"
                                    (union (set (generate-alt-names food-name))
-                                          (set (get aliases "Food Name"))))
+                                          (set (get aliases food-name))))
                              (str "Amount " (simplify-unit units))
                              (js/parseFloat quantity)))})))))
 
 (assert=
   '({"Category" "Vegetables and Vegetable Products",
+     "Food Name" "Potatoes, Russet, Flesh and Skin, Baked",
      "Energy (kcal)" 164.35,
      "Carbs (g)" 37.09,
      "Aliases" "potatoes russet flesh and skin baked\npotatoes",
-     "Food Name" "Potatoes, Russet, Flesh and Skin, Baked"
-     "Amount potato medium (2-1/4\" to 3-1/4\" dia.)" 1}
+     "Amount medium" 1}
     {"Category" "Breakfast Cereals",
+     "Food Name" "Oatmeal, Regular or Quick, Dry",
      "Energy (kcal)" 100,
      "Carbs (g)" 50,
      "Aliases" "oatmeal regular or quick dry\noatmeal",
-     "Food Name" "Oatmeal, Regular or Quick, Dry"
      "Amount g" 100,
-     "Amount cups" 50}
+     "Amount cup" 50}
     {"Category" "Beverages",
+     "Food Name" "Tap Water",
      "Energy (kcal)" 0,
      "Carbs (g)" 0,
      "Aliases" "tap water",
-     "Food Name" "Tap Water"
      "Amount g" 1000})
   (parse-cronometer-db
     [{"Category" "Vegetables and Vegetable Products", "Food Name" "Potatoes, Russet, Flesh and Skin, Baked", "Amount" "1.00 potato medium (2-1/4\" to 3-1/4\" dia.)", "Energy (kcal)" "164.35", "Carbs (g)" "37.09"}
@@ -206,13 +217,14 @@
      {"Category" "Breakfast Cereals", "Food Name" "Oatmeal, Regular or Quick, Dry", "Amount" "100.00 cups", "Energy (kcal)" "200.00", "Carbs (g)" "100.00"}
      {"Category" "Beverages", "Food Name" "Tap Water", "Amount" "1000.00 g", "Energy (kcal)" "0.00", "Carbs (g)" "0.00"}]))
 
-(defn print+return [x] (prn x) x)
+(declare get-food-db)
 
 (defn ^:export make-new-food-db-sheet
   []
   (sheets/maps-to-sheet
-    (print+return (parse-cronometer-db (get-cronometer-db-raw-rows)))
-    "Food Database"))
+    (parse-cronometer-db (get-raw-rows cronometer-export-filename))
+    "Food Database")
+  (prn (get-food-db)))
 
 ; --------------------- Food Database Retrival and Access --------------------
 
