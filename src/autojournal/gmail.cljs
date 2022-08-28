@@ -1,16 +1,19 @@
 (ns autojournal.gmail
   (:require [autojournal.env-switching :refer [env-switch]]
-            [autojournal.testing-utils :refer [assert=]]))
+            [autojournal.testing-utils :refer [assert=]]
+            [hiccups.runtime :refer [render-html]]))
 
 (defn send-self-mail
-  [subject contents]
-  (env-switch
-    {:node #(prn subject contents)
-     :app-script #(.. js/GmailApp
-                    (sendEmail 
-                      (.. js/Session
+  [subject hiccup]
+  (let [html-contents (str "<!DOCTYPE html>" (render-html hiccup))]
+    (env-switch
+      {:node #(prn subject html-contents)
+       :app-script #(.. js/GmailApp
+                      (sendEmail
+                        (.. js/Session
                           (getActiveUser)
                           (getEmail))
-                      subject
-                      contents))}))
+                        subject
+                        ""
+                        (clj->js {:htmlBody html-contents})))})))
 

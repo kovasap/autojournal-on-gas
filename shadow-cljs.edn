@@ -1,9 +1,9 @@
 {:source-paths ["src"]
  :dependencies [[metosin/malli "0.8.4"]
-                [cljfmt "0.5.1"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
                 [hiccups "0.3.0"]
                 [com.github.jpmonettas/flow-storm-inst "RELEASE"]
+                [hashp "0.2.1"]
                 [philoskim/debux "0.8.2"]]
 
  :builds
@@ -13,6 +13,7 @@
   :autojournal-for-node {:target :node-script
                          :main autojournal.core/main
                          :compiler-options {:infer-externs true}
+                         :devtools {:preloads [hashp.core flow-storm.api]}
                          :externs ["resources/gas.ext.js"]
                          :output-to "dev-Code.js"}
   :autojournal-for-gas  {:target :google-apps-script
