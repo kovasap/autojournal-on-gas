@@ -14,7 +14,9 @@
 (defn get-sheet-data
   [id]
   (env-switch
-    {:node #(prn id)
+    {:node #(do (prn (str "Getting fake data for sheet " id))
+                [["h1" "h2"]
+                 [ "1"  "2"]])
      :app-script #(js->clj
                     (.. js/SpreadsheetApp
                       (openById id)

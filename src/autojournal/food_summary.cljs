@@ -3,6 +3,7 @@
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
+            [inflections.core :refer [singular]]
             [clojure.set :refer [union]]
             [clojure.string :refer [split split-lines lower-case replace join
                                     starts-with? includes? trim]]))
@@ -35,51 +36,69 @@
 
 
 (defn numberify
-  {:malli/schema [:=> [:cat :string] :double]}
+  {:malli/schema [:=> [:cat :string] :string]}
   [s]
   (-> s
-      (replace "one" "1")
-      (replace "two" "2")
-      (replace "three" "3")
-      (replace "four" "4")
-      (replace "five" "5")
-      (replace "six" "6")
-      (replace "seven" "7")
-      (replace "eight" "8")
-      (replace "nine" "9")
-      (replace "ten" "10")
-      (js/parseFloat)))
+      (replace "one half " "0.5 ")
+      (replace "1/3 " "0.333 ")
+      (replace "1/2 " "0.5 ")
+      (replace "1/4 " "0.25 ")
+      (replace "3/4 " "0.75 ")
+      (replace "one " "1 ")
+      (replace "half " "0.5 ")
+      (replace "two " "2 ")
+      (replace "three " "3 ")
+      (replace "four " "4 ")
+      (replace "five " "5 ")
+      (replace "six " "6 ")
+      (replace "seven " "7 ")
+      (replace "eight " "8 ")
+      (replace "nine " "9 ")
+      (replace "ten " "10 ")))
 
-(def food-quantity-regexes
-  [[#"(\w+)\s+cup|cups\s+(.+)" "cups"]
-   [#"(\w+)\s+(.+)" "whole"]])
+(def -decimal-regex
+  "([0-9]+\\.?[0-9]*|\\.[0-9]+)")
 
-(defn parse-food-units
-  [food]
-  (last (for [[re units] food-quantity-regexes
-              [quantity food] (re-matches re food)
-              :while (nil? quantity)]
-            {:name food
-             :quantity (numberify quantity)
+(def -food-quantity-regexes
+  (conj
+    (for [unit ["cup" "cups" "small"]]
+      [(re-pattern (str -decimal-regex "\\s+" unit "\\s+(.+)")) unit])
+    [(re-pattern (str -decimal-regex "\\s+(.+)")) "serving"]))
+
+(defn -parse-food-units
+  [prepped-food]
+  (last (for [[re units] -food-quantity-regexes
+              :let [[quantity food] (rest (re-matches re prepped-food))]
+              :when (not (nil? quantity))]
+            {:name (singular food)
+             :quantity (js/parseFloat quantity)
              :quantity-units units})))
     
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
-  [food]
-  (parse-food-units (lower-case food)))
+  [raw-food]
+  (let [prepped-food (numberify (lower-case raw-food))
+        parsed-food (-parse-food-units prepped-food)]
+    (if (nil? parsed-food)
+      (-parse-food-units (str "1 " prepped-food))
+      parsed-food)))
 
-; (doseq [[input expected]
-;         [["three small potatoes" []]
-;          ["half cup craisins" []]
-;          ["1/3 cup popcorn kernels" []]
-;          ["nectarine" []]])
-;   (assert= expected (parse-food input)))
+(assert= {:name "potato", :quantity 3, :quantity-units "small"}
+         (parse-food "three small potatoes"))
+(assert= {:name "craisin", :quantity 0.5, :quantity-units "cup"}
+         (parse-food "half cup craisins"))
+(assert= {:name "popcorn kernel", :quantity 0.333, :quantity-units "cup"}
+         (parse-food "1/3 cup popcorn kernels"))
+(assert= {:name "nectarine", :quantity 1, :quantity-units "serving"}
+         (parse-food "nectarine"))
      
 
 (defn parse-foods
   {:malli/schema [:=> [:cat :string] [:sequential Food]]}
   [foods]
-  (map parse-food (split-lines foods)))
+  (if (= foods "")
+    []
+    (map parse-food (split-lines foods))))
 
 
 (defn row->meal
@@ -380,7 +399,7 @@
   {:malli/schema [:=> [:cat]
                   [:map-of [NutrientName :double]]]}
   []
-  (sheets/transposed-sheet-to-maps nutrient-targets-sheet-id))
+  (first (sheets/transposed-sheet-to-maps nutrient-targets-sheet-id)))
 
 
 
@@ -400,9 +419,9 @@
   [foods]
   (let [nutrient-targets (get-nutrient-targets)]
     (sort-by
-      #(%2)
+      last
       (for [[nutrient amount] (sum-food-nutrients foods)
-            :let [percent-of-target (/ amount (get nutrient-targets nutrient))]
+            :let [percent-of-target (/ amount (get nutrient-targets nutrient 100))]
             :when (or (> percent-of-target 2) (< percent-of-target 1))]
         [nutrient percent-of-target]))))
 
@@ -507,11 +526,11 @@
      :quantity-units "g",
      :nutrients {"Energy (kcal)" 0, "Carbs (g)" 0}}}})
 
-
-(-> (map row->meal
+(build-report-email
+  (add-all-nutrients-to-meals
+    (map row->meal
          '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
            {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one cup carrots\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
            {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
            {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
-    (add-all-nutrients-to-meals test-food-db)
-    (build-report-email))
+    test-food-db))

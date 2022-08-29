@@ -4,7 +4,8 @@
                 [hiccups "0.3.0"]
                 [com.github.jpmonettas/flow-storm-inst "RELEASE"]
                 [hashp "0.2.1"]
-                [philoskim/debux "0.8.2"]]
+                [philoskim/debux "0.8.2"]
+                [inflections "0.14.1"]]
 
  :builds
  {:test                 {:target :node-test
