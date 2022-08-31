@@ -7,7 +7,7 @@
   [subject hiccup]
   (let [html-contents (str "<!DOCTYPE html>" (render-html hiccup))]
     (env-switch
-      {:node #(prn subject html-contents)
+      {:node #(do (prn subject html-contents) html-contents)
        :app-script #(.. js/GmailApp
                       (sendEmail
                         (.. js/Session

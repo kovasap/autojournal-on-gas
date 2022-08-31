@@ -23,6 +23,7 @@
   [:map [:quantity :double]
         [:quantity-units :string]
         [:name FoodName]
+        [:category :string]
         [:nutrients [:map-of NutrientName :double]]])
 
 (def Meal
@@ -261,6 +262,7 @@
 (defn raw-db-row->food
   [row unit]
   {:name (get row "Food Name")
+   :category (get row "Category")
    :quantity (first (for [[_ aunit quantity] (get-amount-fields row)
                           :when (= unit aunit)]
                       quantity))
@@ -393,6 +395,18 @@
                                       [:text string?]]]]}}
    "hiccup"])
 
+(defn make-table
+  {:malli/schema [:=> [:cat [:sequential :string]
+                            [:sequential [:sequential :any]]]
+                   Hiccup]}
+  [headers rows]
+  [:table
+   [:tbody
+    ; https://www.w3schools.com/html/html_table_headers.asp
+    (into [:tr] (for [h headers] [:th h]))
+    (for [row rows]
+      (into [:tr] (for [i row] [:td i])))]])
+
 
 (defn get-nutrient-targets
   "Returns a map like {\"Vitamin C (mg)\"  1}"
@@ -415,35 +429,65 @@
 
 (defn get-off-target-nutrients
   {:malli/schema [:=> [:cat [:sequential Food]]
-                   [:vector-of [NutrientName PercentOfTarget]]]}
+                   [:vector-of [NutrientName :double :double PercentOfTarget]]]}
   [foods]
   (let [nutrient-targets (get-nutrient-targets)]
     (sort-by
       last
       (for [[nutrient amount] (sum-food-nutrients foods)
-            :let [percent-of-target (/ amount (get nutrient-targets nutrient 100))]
+            :let [target (get nutrient-targets nutrient 100)
+                  percent-of-target (/ amount target)]
             :when (or (> percent-of-target 2) (< percent-of-target 1))]
-        [nutrient percent-of-target]))))
+        [nutrient amount target percent-of-target]))))
 
-
-(defn nutrient-section
+(defn nutrient-target-performance
   {:malli/schema [:=> [:cat [:sequential Food]]
-                  Hiccup]}
+                   Hiccup]}
   [foods]
   [:div
-   (into [:div] (for [food foods]
-                  [:p food]))
-   [:p "Eat more or less of these nutrients tomorrow:"
-    [:table
-      [:tbody
-    ;  https://www.w3schools.com/html/html_table_headers.asp
-       [:tr [:th "Nutrient"] [:th "Percent of Target"]]
-       (for [[nutrient percent-of-target] (get-off-target-nutrients foods)]
-         [:tr [:td nutrient] [:td percent-of-target]])]]]])
-   
+   [:p "Eat more or less of these nutrients tomorrow:"]
+   (make-table ["Nutrient" "Amount" "Target" "Percent of Target"]
+               (get-off-target-nutrients foods))])
+
+(defn sum-nutrient
+  {:malli/schema [:=> [:cat [:sequential Food] NutrientName]
+                  :double]}
+  [foods nutrient-name]
+  (reduce + (map #(get (:nutrients %) nutrient-name) foods)))
+
+
+(defn food-category-calorie-breakdown
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                   Hiccup]}
+  [foods]
+  [:div
+   [:p "Food category breakdown"]
+   (let [total-cals (sum-nutrient foods "Energy (kcal)")
+         categories-to-cals
+         (sort-by last (for [[cat cat-foods] (group-by :category foods)]
+                         [cat (sum-nutrient cat-foods "Energy (kcal)")]))]
+     (make-table ["Category" "Percent Daily Calories"]
+                 (for [[cat cat-cals] categories-to-cals]
+                   [cat (/ cat-cals total-cals)])))])
+  
+(defn foods-by-nutrient
+  {:malli/schema [:=> [:cat [:sequential Food] NutrientName]
+                   Hiccup]}
+  [foods nutrient]
+  [:details
+   [:summary "All foods by " nutrient]
+   (make-table ["Food" nutrient]
+               (sort-by last (for [food foods]
+                               [(:name food)
+                                (get (:nutrients food) nutrient)])))])
+                                
+; TODO normalize all volumes to cups, then tabulate
+(defn foods-by-volume
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                   Hiccup]}
+  [foods])
   
    
-
 (defn build-report-email
   {:malli/schema [:=> [:cat [:sequential Meal]]
                   Hiccup]}
@@ -452,8 +496,10 @@
     [:html
      [:head]
      [:body
-      [:div
-       (nutrient-section all-foods)]]]))
+      (food-category-calorie-breakdown all-foods)
+      (nutrient-target-performance all-foods)
+      (foods-by-nutrient all-foods "Energy (kcal)")
+      (foods-by-volume all-foods)]]))
   
 
 ; --------------- Main -----------------------------------------
@@ -526,11 +572,12 @@
      :quantity-units "g",
      :nutrients {"Energy (kcal)" 0, "Carbs (g)" 0}}}})
 
-(build-report-email
-  (add-all-nutrients-to-meals
-    (map row->meal
-         '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
-           {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one cup carrots\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
-           {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
-           {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
-    test-food-db))
+(gmail/send-self-mail "Daily Report"
+  (build-report-email
+    (add-all-nutrients-to-meals
+      (map row->meal
+           '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
+             {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one cup carrots\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
+             {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
+             {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
+      test-food-db)))
