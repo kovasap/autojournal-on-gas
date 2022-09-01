@@ -4,6 +4,7 @@
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [assert=]]
             [inflections.core :refer [singular]]
+            [cljs.pprint :refer [pprint]]
             [clojure.set :refer [union]]
             [clojure.string :refer [split split-lines lower-case replace join
                                     starts-with? includes? trim]]))
@@ -66,19 +67,25 @@
       [(re-pattern (str -decimal-regex "\\s+" unit "\\s+(.+)")) unit])
     [(re-pattern (str -decimal-regex "\\s+(.+)")) "serving"]))
 
+(defn -singular-fixed
+  [s]
+  (cond
+    (= s "olives") "olive"
+    :else (singular s)))
+
 (defn -parse-food-units
   [prepped-food]
   (last (for [[re units] -food-quantity-regexes
               :let [[quantity food] (rest (re-matches re prepped-food))]
               :when (not (nil? quantity))]
-            {:name (singular food)
+            {:name (-singular-fixed food)
              :quantity (js/parseFloat quantity)
              :quantity-units units})))
     
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
-  (let [prepped-food (numberify (lower-case raw-food))
+  (let [prepped-food (numberify (lower-case (trim raw-food)))
         parsed-food (-parse-food-units prepped-food)]
     (if (nil? parsed-food)
       (-parse-food-units (str "1 " prepped-food))
@@ -286,41 +293,48 @@
 (assert=
  {"potatoes russet flesh and skin baked"
   {"medium"
-   {:name "Potatoes, Russet, Flesh and Skin, Baked",
-    :quantity 1,
-    :quantity-units "medium",
-    :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}},
+    {:name "Potatoes, Russet, Flesh and Skin, Baked",
+     :category "Vegetables and Vegetable Products",
+     :quantity 1,
+     :quantity-units "medium",
+     :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}},
   "potatoes"
   {"medium"
    {:name "Potatoes, Russet, Flesh and Skin, Baked",
+    :category "Vegetables and Vegetable Products",
     :quantity 1,
     :quantity-units "medium",
-    :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}}
+    :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}},
   "oatmeal regular or quick dry"
   {"g"
    {:name "Oatmeal, Regular or Quick, Dry",
+    :category "Breakfast Cereals",
     :quantity 100,
     :quantity-units "g",
     :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}},
    "cup"
    {:name "Oatmeal, Regular or Quick, Dry",
+    :category "Breakfast Cereals",
     :quantity 50,
     :quantity-units "cup",
     :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}}},
   "oatmeal"
   {"g"
    {:name "Oatmeal, Regular or Quick, Dry",
+    :category "Breakfast Cereals",
     :quantity 100,
     :quantity-units "g",
     :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}},
    "cup"
    {:name "Oatmeal, Regular or Quick, Dry",
+    :category "Breakfast Cereals",
     :quantity 50,
     :quantity-units "cup",
-    :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}}}
+    :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}}},
   "tap water"
   {"g"
    {:name "Tap Water",
+    :category "Beverages",
     :quantity 1000,
     :quantity-units "g",
     :nutrients {"Energy (kcal)" 0, "Carbs (g)" 0}}}}
@@ -350,17 +364,19 @@
   []
   (parse-raw-food-db (get-raw-rows food-db-sheet-name)))
 
-(defn add-nutrients
+(defn add-db-data-to-food
   "(logged quantity / DB quantity) * DB nutrient = logged nutrient
   (5 apples / 1 DB apple) * 100mg DB thing = 500 mg thing in logged food
   "
   [logged-food db-food]
   (let [factor (/ (:quantity logged-food) (:quantity db-food))]
-    (assoc logged-food :nutrients
-           (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
+    (assoc
+      logged-food
+      :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)]))
+      :category (:category db-food))))
     
 
-(defn add-all-nutrients
+(defn add-db-data-to-foods
   {:malli/schema [:=> [:cat [:sequential Food] FoodDB]
                   [:sequential Food]]}
   [foods food-db]
@@ -368,14 +384,14 @@
         :let [db-food (-> food-db
                           (get (:name food))
                           (get (:quantity-units food)))]]
-    (add-nutrients food db-food)))
+    (add-db-data-to-food food db-food)))
 
-(defn add-all-nutrients-to-meals
+(defn add-db-data-to-meals
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]
                   [:sequential Meal]]}
   [meals food-db]
   (for [meal meals]
-    (update meal :foods #(add-all-nutrients % food-db))))
+    (update meal :foods #(add-db-data-to-foods % food-db))))
 
 
 
@@ -406,6 +422,9 @@
     (into [:tr] (for [h headers] [:th h]))
     (for [row rows]
       (into [:tr] (for [i row] [:td i])))]])
+
+(defn round [n]
+  (/ (Math/round (* 1000 (+ n (. js/Number -EPSILON)))) 1000))
 
 
 (defn get-nutrient-targets
@@ -438,7 +457,7 @@
             :let [target (get nutrient-targets nutrient 100)
                   percent-of-target (/ amount target)]
             :when (or (> percent-of-target 2) (< percent-of-target 1))]
-        [nutrient amount target percent-of-target]))))
+        [nutrient amount target (* 100 (round percent-of-target))]))))
 
 (defn nutrient-target-performance
   {:malli/schema [:=> [:cat [:sequential Food]]
@@ -464,11 +483,12 @@
    [:p "Food category breakdown"]
    (let [total-cals (sum-nutrient foods "Energy (kcal)")
          categories-to-cals
-         (sort-by last (for [[cat cat-foods] (group-by :category foods)]
-                         [cat (sum-nutrient cat-foods "Energy (kcal)")]))]
+         (reverse
+           (sort-by last (for [[cat cat-foods] (group-by :category foods)]
+                           [cat (sum-nutrient cat-foods "Energy (kcal)")])))]
      (make-table ["Category" "Percent Daily Calories"]
                  (for [[cat cat-cals] categories-to-cals]
-                   [cat (/ cat-cals total-cals)])))])
+                   [cat (* 100 (round (/ cat-cals total-cals)))])))])
   
 (defn foods-by-nutrient
   {:malli/schema [:=> [:cat [:sequential Food] NutrientName]
@@ -477,15 +497,27 @@
   [:details
    [:summary "All foods by " nutrient]
    (make-table ["Food" nutrient]
-               (sort-by last (for [food foods]
-                               [(:name food)
-                                (get (:nutrients food) nutrient)])))])
+               (reverse
+                 (sort-by last (for [food foods]
+                                 [(:name food)
+                                  (get (:nutrients food) nutrient)]))))])
                                 
 ; TODO normalize all volumes to cups, then tabulate
 (defn foods-by-volume
   {:malli/schema [:=> [:cat [:sequential Food]]
                    Hiccup]}
   [foods])
+
+
+(defn debug-meals
+  {:malli/schema [:=> [:cat [:sequential Meal]]
+                  Hiccup]}
+  [meals]
+  [:details
+   [:summary "Debug Meals"]
+   [:div {:style "white-space: pre-wrap"}
+         (with-out-str (pprint meals))]])
+
   
    
 (defn build-report-email
@@ -497,9 +529,14 @@
      [:head]
      [:body
       (food-category-calorie-breakdown all-foods)
+      [:br]
       (nutrient-target-performance all-foods)
+      [:br]
       (foods-by-nutrient all-foods "Energy (kcal)")
-      (foods-by-volume all-foods)]]))
+      [:br]
+      (foods-by-volume all-foods)
+      [:br]
+      (debug-meals meals)]]))
   
 
 ; --------------- Main -----------------------------------------
@@ -520,7 +557,7 @@
   (let [food-db (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))
         email-body (-> (todays-meals all-meals)
-                       (add-all-nutrients-to-meals food-db)
+                       (add-db-data-to-meals food-db)
                        (build-report-email))]
     (gmail/send-self-mail "Daily Report" email-body)))
 
@@ -535,49 +572,70 @@
    {"medium"
     {:name "Potatoes, Russet, Flesh and Skin, Baked",
      :quantity 1,
+     :category "roots"
      :quantity-units "medium",
      :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}},
    "potatoes"
    {"medium"
     {:name "Potatoes, Russet, Flesh and Skin, Baked",
      :quantity 1,
+     :category "roots"
      :quantity-units "medium",
      :nutrients {"Energy (kcal)" 164.35, "Carbs (g)" 37.09}}}
    "steamed rice"
    {"g"
     {:name "White Rice, steamed",
      :quantity 100,
+     :category "grains"
      :quantity-units "g",
      :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}},
     "cup"
     {:name "White Rice, steamed",
-     :quantity 50,
+     :quantity 1,
+     :category "grains"
      :quantity-units "cup",
      :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}}},
    "rice"
    {"g"
     {:name "White Rice, steamed",
      :quantity 100,
+     :category "grains"
      :quantity-units "g",
      :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}},
     "cup"
     {:name "White Rice, steamed",
-     :quantity 50,
+     :quantity 1,
+     :category "grains"
      :quantity-units "cup",
      :nutrients {"Energy (kcal)" 100, "Carbs (g)" 50}}}
    "cauliflower"
-   {"g"
+   {"cup"
     {:name "Cauliflower",
-     :quantity 1000,
-     :quantity-units "g",
-     :nutrients {"Energy (kcal)" 0, "Carbs (g)" 0}}}})
+     :quantity 1,
+     :category "Vegetable"
+     :quantity-units "cup",
+     :nutrients {"Energy (kcal)" 50, "Carbs (g)" 0}}}
+   "carrot"
+   {"serving"
+    {:name "Carrot",
+     :quantity 1,
+     :category "Vegetable"
+     :quantity-units "serving",
+     :nutrients {"Energy (kcal)" 30, "Carbs (g)" 0}}}
+   "bell pepper"
+   {"cup"
+    {:name "Bell Pepper",
+     :quantity 1,
+     :category "Vegetable"
+     :quantity-units "cup",
+     :nutrients {"Energy (kcal)" 10, "Carbs (g)" 0}}}})
 
 (gmail/send-self-mail "Daily Report"
   (build-report-email
-    (add-all-nutrients-to-meals
+    (add-db-data-to-meals
       (map row->meal
            '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
-             {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one cup carrots\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
+             {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one carrot\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
              {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
              {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
       test-food-db)))
