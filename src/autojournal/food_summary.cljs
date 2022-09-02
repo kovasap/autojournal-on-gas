@@ -6,8 +6,9 @@
             [inflections.core :refer [singular]]
             [cljs.pprint :refer [pprint]]
             [clojure.set :refer [union]]
-            [clojure.string :refer [split split-lines lower-case replace join
-                                    starts-with? includes? trim]]))
+            [clojure.string :as st
+             :refer [split split-lines lower-case join
+                     starts-with? includes? trim]]))
 
 (def food-sheet-name "Food")
 (def food-db-sheet-name "Food Database")
@@ -41,56 +42,70 @@
   {:malli/schema [:=> [:cat :string] :string]}
   [s]
   (-> s
-      (replace "one half " "0.5 ")
-      (replace "1/3 " "0.333 ")
-      (replace "1/2 " "0.5 ")
-      (replace "1/4 " "0.25 ")
-      (replace "3/4 " "0.75 ")
-      (replace "one " "1 ")
-      (replace "half " "0.5 ")
-      (replace "two " "2 ")
-      (replace "three " "3 ")
-      (replace "four " "4 ")
-      (replace "five " "5 ")
-      (replace "six " "6 ")
-      (replace "seven " "7 ")
-      (replace "eight " "8 ")
-      (replace "nine " "9 ")
-      (replace "ten " "10 ")))
+      (st/replace #"one half " "0.5 ")
+      (st/replace #"1/3 " "0.333 ")
+      (st/replace #"1/2 " "0.5 ")
+      (st/replace #"1/4 " "0.25 ")
+      (st/replace #"3/4 " "0.75 ")
+      (st/replace #"one " "1 ")
+      (st/replace #"half " "0.5 ")
+      (st/replace #"two " "2 ")
+      (st/replace #"three " "3 ")
+      (st/replace #"four " "4 ")
+      (st/replace #"five " "5 ")
+      (st/replace #"six " "6 ")
+      (st/replace #"seven " "7 ")
+      (st/replace #"eight " "8 ")
+      (st/replace #"nine " "9 ")
+      (st/replace #"ten " "10 ")))
 
-(def -decimal-regex
-  "([0-9]+\\.?[0-9]*|\\.[0-9]+)")
+(defn -food-regex
+  [raw-unit]
+  (re-pattern (str "(.*)\\s*(" raw-unit ")\\s+(.+)")))
 
-(def -food-quantity-regexes
-  (conj
-    (for [unit ["cup" "cups" "small"]]
-      [(re-pattern (str -decimal-regex "\\s+" unit "\\s+(.+)")) unit])
-    [(re-pattern (str -decimal-regex "\\s+(.+)")) "serving"]))
+(def units-map
+  {"cup" ["cups"]
+   "tbsp" ["tablespoons" "tablespoon"]
+   "serving" ["sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
+              "dash" "per portion" "slice"]
+   "fl oz" ["fluid ounce"]
+   "small" []
+   "medium" []
+   "large" []})
 
+(defn extract-units
+  "Returns [amount units food]."
+  [food-str]
+  (let [matches
+        (remove empty?
+                (reduce concat
+                        (for [[std-unit raw-units] units-map]
+                          (for [raw-unit (conj raw-units std-unit)]
+                            (replace {raw-unit std-unit}
+                                     (rest (re-matches (-food-regex raw-unit)
+                                                       food-str)))))))]
+    (cond
+      (> 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
+      (= 0 (count matches)) (do (prn "No matches for " food-str) nil)
+      :else (first matches))))
+    
 (defn -singular-fixed
   [s]
   (cond
     (= s "olives") "olive"
     :else (singular s)))
 
-(defn -parse-food-units
-  [prepped-food]
-  (last (for [[re units] -food-quantity-regexes
-              :let [[quantity food] (rest (re-matches re prepped-food))]
-              :when (not (nil? quantity))]
-            {:name (-singular-fixed food)
-             :quantity (js/parseFloat quantity)
-             :quantity-units units})))
-    
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
-  (let [prepped-food (numberify (lower-case (trim raw-food)))
-        parsed-food (-parse-food-units prepped-food)]
-    (if (nil? parsed-food)
-      (-parse-food-units (str "1 " prepped-food))
-      parsed-food)))
-
+  (let [extract (extract-units (lower-case (trim raw-food)))
+        [quantity units food] (if (nil? extract)
+                                ["1" "serving" raw-food]
+                                extract)]
+    {:name (-singular-fixed food)
+     :quantity (js/parseFloat (numberify quantity))
+     :quantity-units units}))
+  
 (assert= {:name "potato", :quantity 3, :quantity-units "small"}
          (parse-food "three small potatoes"))
 (assert= {:name "craisin", :quantity 0.5, :quantity-units "cup"}
@@ -166,17 +181,16 @@
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
   [food-name]
-  (let [no-punc (replace food-name #",|\." "")
+  (let [no-punc (st/replace food-name #",|\." "")
         no-descrip (first (split food-name #","))]
     (distinct (map lower-case [no-punc no-descrip]))))
 
-(defn simplify-unit
+(defn simplify-db-unit
   [units]
   (if (nil? units)
     "serving"
     ((comp
-      #(if (#{"sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
-              "dash" "per portion" "slice"} %)
+      #(if ((set (get units-map "serving")) %)
          "serving" %)
       trim
       #(get {"tablespoon" "tbsp"
@@ -215,7 +229,7 @@
                              (join "\n"
                                    (union (set (generate-alt-names food-name))
                                           (set (get aliases food-name))))
-                             (str "Amount " (simplify-unit units))
+                             (str "Amount " (simplify-db-unit units))
                              (js/parseFloat quantity)))})))))
 
 (assert=
@@ -263,7 +277,7 @@
   [row]
   (for [[k quantity] row
         :when (starts-with? k "Amount ")
-        :let [unit (replace k #"Amount " "")]]
+        :let [unit (st/replace k #"Amount " "")]]
     [k unit quantity]))
     
 (defn raw-db-row->food
@@ -556,9 +570,11 @@
   (prn (first (drive/get-files food-sheet-name)))
   (let [food-db (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        email-body (-> (todays-meals all-meals)
-                       (add-db-data-to-meals food-db)
-                       (build-report-email))]
+        email-body (if (= 0 (count all-meals))
+                     "No foods for today, did you sync momentodb?"
+                     (-> (todays-meals all-meals)
+                         (add-db-data-to-meals food-db)
+                         (build-report-email)))]
     (gmail/send-self-mail "Daily Report" email-body)))
 
 ; Necessary to def these because the map gets confused by the extra #inst token
