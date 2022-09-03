@@ -2,7 +2,7 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
-            [autojournal.testing-utils :refer [assert=]]
+            [autojournal.testing-utils :refer [node-only assert=]]
             [inflections.core :refer [singular]]
             [cljs.pprint :refer [pprint]]
             [clojure.set :refer [union]]
@@ -17,7 +17,8 @@
 ; TODO Make this reference a sheet name
 (def nutrient-targets-sheet-id
   "1bz_n3VlnejYkCr1uaieYFir3ajvyP4IVva6tOvW1nhI")
-  
+
+(def DAYS-TO-SUMMARIZE 5)
 
 (def FoodName :string)
 (def NutrientName :string)
@@ -174,7 +175,22 @@
   [m]
   (into {} (for [[k v] m
                  :let [floatv (js/parseFloat v)]]
-             [k (if (js/Number.isNaN floatv) v floatv)])))
+             [k (if (or (float? v)
+                        (js/Number.isNaN floatv)
+                        ; parseFloat will take any leading numbers and make
+                        ; them a float, so we explicitly make sure no letters
+                        ; are in the string
+                        (not (nil? (re-matches #".*[a-zA-Z]+.*" v))))
+                    v
+                    floatv)])))
+
+(assert=
+  {"a" "1.0 g"
+   "b" 0
+   "c" 1}
+  (floatify-vals {"a" "1.0 g"
+                  "b" "0.00"
+                  "c" 1.00}))
 
 (defn get-raw-rows
   [filename]
@@ -208,12 +224,27 @@
             factor (/ cals1 cals2)]
         (assoc food1 new-unit (* factor (get food2 new-unit)))))))
 
+(def preparations
+  #{"cooked" "raw" "chopped" "dry"})
+  
+
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
   [food-name]
-  (let [no-punc (st/replace food-name #",|\." "")
-        no-descrip (first (split food-name #","))]
-    (distinct (map lower-case [no-punc no-descrip]))))
+  (let [lower-food (lower-case food-name)
+        no-punc (st/replace lower-food #",|\." "")
+        no-descrip (first (split lower-food #","))
+        no-descrip-singular (-singular-fixed no-descrip)
+        w-preps (reduce concat (for [prep preparations
+                                     :when (includes? lower-food prep)]
+                                 [(str prep " " no-descrip-singular)
+                                  (str no-descrip-singular " " prep)]))]
+    (distinct (concat [no-punc no-descrip no-descrip-singular] w-preps))))
+
+(assert=
+  '("kale cooked from fresh" "kale" "cooked kale" "kale cooked")
+  (generate-alt-names "Kale, Cooked from Fresh"))
+
 
 (defn simplify-db-unit
   [units]
@@ -244,13 +275,14 @@
   ; For getting test data.
   ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
   ;                             "Carbs (g)"
-  ;            (take 3 rows)]
+  ;            (take 10 rows)]
   (let [aliases (get-existing-aliases)]
     ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
     (vals (apply merge-with merge-food-units
                  (for [row rows
                        :let [food-name (get row "Food Name")
-                             [quantity units] (split (get row "Amount") #" " 2)]]
+                             [quantity units] (split (str (get row "Amount"))
+                                                     #" " 2)]]
                    {food-name
                      (-> row
                       (dissoc "Day" "Time" "Group" "Amount")
@@ -294,7 +326,7 @@
   []
   (sheets/maps-to-sheet
     (parse-cronometer-db (get-raw-rows cronometer-export-filename))
-    "Food Database")
+    food-db-sheet-name)
   (prn (get-food-db)))
 
 
@@ -408,16 +440,15 @@
   []
   (parse-raw-food-db (get-raw-rows food-db-sheet-name)))
 
-(defn add-db-data-to-food
+(defn get-scaled-db-food
   "(logged quantity / DB quantity) * DB nutrient = logged nutrient
   (5 apples / 1 DB apple) * 100mg DB thing = 500 mg thing in logged food
   "
   [logged-food db-food]
   (let [factor (/ (:quantity logged-food) (:quantity db-food))]
     (assoc
-      logged-food
-      :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)]))
-      :category (:category db-food))))
+      db-food
+      :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
     
 
 (defn add-db-data-to-foods
@@ -428,7 +459,9 @@
         :let [db-food (-> food-db
                           (get (:name food))
                           (get (:quantity-units food)))]]
-    (add-db-data-to-food food db-food)))
+    (if (nil? db-food)
+      food
+      (get-scaled-db-food food db-food))))
 
 (defn add-db-data-to-meals
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]
@@ -533,18 +566,28 @@
      (make-table ["Category" "Percent Daily Calories"]
                  (for [[cat cat-cals] categories-to-cals]
                    [cat (* 100 (round (/ cat-cals total-cals)))])))])
+
+(defn combine-duplicate-foods
+  {:malli/schema [:=> [:cat [:sequential Food]]
+                  [:sequential Food]]}
+  [foods]
+  (for [same-foods (vals (group-by :name foods))]
+    (assoc (first same-foods) 
+           :nutrients (sum-food-nutrients same-foods))))
+  
   
 (defn foods-by-nutrient
   {:malli/schema [:=> [:cat [:sequential Food] NutrientName]
                    Hiccup]}
   [foods nutrient]
-  [:details
-   [:summary "All foods by " nutrient]
-   (make-table ["Food" nutrient]
-               (reverse
-                 (sort-by last (for [food foods]
-                                 [(:name food)
-                                  (get (:nutrients food) nutrient)]))))])
+  ; [:details
+  ;  [:summary "All foods by " nutrient]
+  [:p "All foods by " nutrient]
+  (make-table ["Food" nutrient]
+              (reverse
+                (sort-by last (for [food (combine-duplicate-foods foods)]
+                                [(:name food)
+                                 (get (:nutrients food) nutrient)])))))
                                 
 ; TODO normalize all volumes to cups, then tabulate
 (defn foods-by-volume
@@ -572,6 +615,7 @@
     [:html
      [:head]
      [:body
+      [:h1 "Last " DAYS-TO-SUMMARIZE " day food summary"]
       (food-category-calorie-breakdown all-foods)
       [:br]
       (nutrient-target-performance all-foods)
@@ -585,8 +629,6 @@
 
 ; --------------- Main -----------------------------------------
 
-(def DAYS-TO-SUMMARIZE 5)
-
 (defn days-between
   [date1 date2]
   (let [diff_ms (abs (- (.getTime date1) (.getTime date2)))]
@@ -599,9 +641,7 @@
     (filter #(< (days-between (:timestamp %) today) DAYS-TO-SUMMARIZE)
             food-data)))
 
-
-; TODO think about making this weekly instead
-(defn send-daily-report
+(defn send-report
   []
   (prn (first (drive/get-files food-sheet-name)))
   (let [food-db (get-food-db)
@@ -683,12 +723,13 @@
      :quantity-units "cup",
      :nutrients {"Energy (kcal)" 10, "Carbs (g)" 0}}}})
 
-(gmail/send-self-mail "Daily Report"
-  (build-report-email
-    (add-db-data-to-meals
-      (map row->meal
-           '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
-             {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one carrot\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
-             {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
-             {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
-      test-food-db)))
+(node-only
+  #(gmail/send-self-mail "Daily Report"
+     (build-report-email
+       (add-db-data-to-meals
+         (map row->meal
+              '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
+                {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one carrot\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
+                {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
+                {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
+         test-food-db))))

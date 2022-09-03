@@ -25,7 +25,7 @@
                   ["hello" "world"]))
 
 (defn ^:export summarize-food []
-  (food-summary/send-daily-report))
+  (food-summary/send-report))
 
 (defn main [])
 
