@@ -59,6 +59,9 @@
       (st/replace #"nine " "9 ")
       (st/replace #"ten " "10 ")))
 
+(def -decimal-regex
+  #"([0-9]+\.?[0-9]*|\.[0-9]+)\s+(.+)")
+
 (defn -food-regex
   [raw-unit]
   (re-pattern (str "(.*)\\s*(" raw-unit ")\\s+(.+)")))
@@ -66,12 +69,20 @@
 (def units-map
   {"cup" ["cups"]
    "tbsp" ["tablespoons" "tablespoon"]
-   "serving" ["sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
-              "dash" "per portion" "slice"]
+   "unit" ["sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
+           "dash" "per portion" "slice" "serving"]
    "fl oz" ["fluid ounce"]
    "small" []
    "medium" []
    "large" []})
+
+(defn extract-unitless-quantity
+  "Returns [amount \"unit\" food] for a food string without any units in it."
+  [food-str]
+  (let [[quantity food] (rest (re-matches -decimal-regex food-str))]
+    (if (nil? quantity)
+      ["1" "unit" food-str]
+      [quantity "unit" food])))
 
 (defn extract-units
   "Returns [amount units food]."
@@ -85,8 +96,8 @@
                                      (rest (re-matches (-food-regex raw-unit)
                                                        food-str)))))))]
     (cond
-      (> 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
-      (= 0 (count matches)) (do (prn "No matches for " food-str) nil)
+      (< 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
+      (= 0 (count matches)) (extract-unitless-quantity food-str)
       :else (first matches))))
     
 (defn -singular-fixed
@@ -95,15 +106,28 @@
     (= s "olives") "olive"
     :else (singular s)))
 
+(defn -remove-of
+  [of-food?]
+  (let [clean-of-food? (trim of-food?)
+        no-of-food (last (re-matches #"of\s+(.+)" clean-of-food?))]
+    (if (nil? no-of-food) of-food? no-of-food)))
+
+(defn -sum-and-quantity
+  [quantity and-food?]
+  (let [no-and-food (last (re-matches #"and\s+(.+)" and-food?))]
+    (if (nil? no-and-food)
+      [(js/parseFloat quantity) and-food?]
+      (let [[quantity2 _ food] (extract-unitless-quantity no-and-food)]
+        [(+ (js/parseFloat quantity) (js/parseFloat quantity2)) food]))))
+
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
-  (let [extract (extract-units (lower-case (trim raw-food)))
-        [quantity units food] (if (nil? extract)
-                                ["1" "serving" raw-food]
-                                extract)]
-    {:name (-singular-fixed food)
-     :quantity (js/parseFloat (numberify quantity))
+  (let [[quantity units food]
+        (extract-units (numberify (lower-case (trim raw-food))))
+        [summed-quantity no-and-food] (-sum-and-quantity quantity food)]
+    {:name (-singular-fixed (-remove-of no-and-food))
+     :quantity summed-quantity
      :quantity-units units}))
   
 (assert= {:name "potato", :quantity 3, :quantity-units "small"}
@@ -112,8 +136,14 @@
          (parse-food "half cup craisins"))
 (assert= {:name "popcorn kernel", :quantity 0.333, :quantity-units "cup"}
          (parse-food "1/3 cup popcorn kernels"))
-(assert= {:name "nectarine", :quantity 1, :quantity-units "serving"}
+(assert= {:name "nectarine", :quantity 1, :quantity-units "unit"}
          (parse-food "nectarine"))
+(assert= {:name "carrot", :quantity 1, :quantity-units "unit"}
+         (parse-food "one carrot"))
+(assert= {:name "carrot", :quantity 1, :quantity-units "cup"}
+         (parse-food "one cup of carrots"))
+(assert= {:name "carrot", :quantity 1, :quantity-units "unit"}
+         (parse-food "one and one half carrot"))
      
 
 (defn parse-foods
@@ -188,10 +218,10 @@
 (defn simplify-db-unit
   [units]
   (if (nil? units)
-    "serving"
+    "unit"
     ((comp
-      #(if ((set (get units-map "serving")) %)
-         "serving" %)
+      #(if ((set (get units-map "unit")) %)
+         "unit" %)
       trim
       #(get {"tablespoon" "tbsp"
              "teaspoon" "tsp"
@@ -555,12 +585,18 @@
 
 ; --------------- Main -----------------------------------------
 
-(defn todays-meals
+(def DAYS-TO-SUMMARIZE 5)
+
+(defn days-between
+  [date1 date2]
+  (let [diff_ms (abs (- (.getTime date1) (.getTime date2)))]
+    (/ diff_ms 1000.0 60 60 24)))
+
+(defn recent-meals
   {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
   [food-data]
   (let [today (js/Date.)]
-    (filter #(= (. today toDateString)
-                (. (:timestamp %) toDateString))
+    (filter #(< (days-between (:timestamp %) today) DAYS-TO-SUMMARIZE)
             food-data)))
 
 
@@ -571,8 +607,9 @@
   (let [food-db (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))
         email-body (if (= 0 (count all-meals))
-                     "No foods for today, did you sync momentodb?"
-                     (-> (todays-meals all-meals)
+                     (str "No foods in last " DAYS-TO-SUMMARIZE
+                          ", did you sync momentodb?")
+                     (-> (recent-meals all-meals)
                          (add-db-data-to-meals food-db)
                          (build-report-email)))]
     (gmail/send-self-mail "Daily Report" email-body)))
@@ -632,11 +669,11 @@
      :quantity-units "cup",
      :nutrients {"Energy (kcal)" 50, "Carbs (g)" 0}}}
    "carrot"
-   {"serving"
+   {"unit"
     {:name "Carrot",
      :quantity 1,
      :category "Vegetable"
-     :quantity-units "serving",
+     :quantity-units "unit",
      :nutrients {"Energy (kcal)" 30, "Carbs (g)" 0}}}
    "bell pepper"
    {"cup"
