@@ -30,7 +30,7 @@
         [:nutrients [:map-of NutrientName :double]]])
 
 (def Meal
-  [:map [:timestamp :any]  ; js datetime
+  [:map [:datetime :any]  ; js datetime
         [:foods [:sequential Food]]
         [:oil [:enum "None" "Light" "Medium" "Heavy"]]
         [:picture :string]]) 
@@ -157,7 +157,7 @@
 
 (defn row->meal
   [row]
-  {:timestamp (:Timestamp row)
+  {:datetime (:Timestamp row)
    :foods     (parse-foods (:Foods row))
    :oil       ((keyword "Oil Amount") row)
    :picture   (:Picture.http row)})
@@ -225,7 +225,7 @@
         (assoc food1 new-unit (* factor (get food2 new-unit)))))))
 
 (def preparations
-  #{"cooked" "raw" "chopped" "dry"})
+  #{"cooked" "raw" "chopped" "dry" "unsweetened"})
   
 
 (defn generate-alt-names
@@ -638,7 +638,7 @@
   {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
   [food-data]
   (let [today (js/Date.)]
-    (filter #(< (days-between (:timestamp %) today) DAYS-TO-SUMMARIZE)
+    (filter #(< (days-between (:datetime %) today) DAYS-TO-SUMMARIZE)
             food-data)))
 
 (defn send-report
@@ -662,7 +662,7 @@
 
 (def test-food-db 
   {"potatoes russet flesh and skin baked"
-   {"medium"
+   {"merium"
     {:name "Potatoes, Russet, Flesh and Skin, Baked",
      :quantity 1,
      :category "roots"

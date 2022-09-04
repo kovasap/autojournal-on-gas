@@ -6,12 +6,8 @@ function summarize_food() {
   autojournal.core.summarize_food();
 }
 
-function add_today() {
-  autojournal.core.update_lifelog();
-}
-
-function add_last_week() {
-  autojournal.core.update_lifelog();
+function update_lifelog_with_today() {
+  autojournal.core.update_lifelog_with_today();
 }
 
 function regenerate_all() {

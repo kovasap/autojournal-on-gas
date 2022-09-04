@@ -2,27 +2,26 @@
   ; We import all custom malli schemas to avoid undeclared-var error when malli
   ; goes to do the schema checking in the refresh function.
   (:require [autojournal.sheets :as sheets]
+            [autojournal.calendar :as calendar]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
             [autojournal.food-summary :as food-summary]
             [autojournal.drive :as drive]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
-            [cljs-time.core :refer [date-time]]
+            [cljs-time.core :refer [date-time today minus days]]
             [malli.core :as m]
             [cljs-time.coerce :refer [to-long]]
             [malli.dev.cljs :as dev]
             [malli.dev.pretty :as pretty]))
 
-(defn ^:export update-lifelog []
-  (prn "hi")
-  (prn (into [] (for [file (drive/get-files "20220515.zip")]
-                  file)))
-  (sheets/update-events!
-    (location/get-events
-      (to-long (date-time 2022 05 15))
-      (to-long (date-time 2022 05 17))))
-  (sheets/append! "1ZDPrV6ZngilK00Pb0DVs64yAVs6YQtiLr_vE5-YCiLc"
-                  ["hello" "world"]))
+(defn ^:export update-lifelog-with-today []
+  (let [today (today)
+        yesterday (minus today (days 1))
+        events (location/get-events
+                 (to-long yesterday)
+                 (to-long today))]
+    (calendar/add-event! (first events))
+    (sheets/update-events! events)))
 
 (defn ^:export summarize-food []
   (food-summary/send-report))
