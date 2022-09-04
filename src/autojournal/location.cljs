@@ -280,7 +280,7 @@
   [dates]
   (let [rows (reduce concat
                      (reduce concat
-                           (for [date dates]
+                           (for [date (distinct dates)]
                              (drive/get-files (-date-to-file date)))))]
     (prn (map -row-to-reading rows))
     (map -row-to-reading rows)))

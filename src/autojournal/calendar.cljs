@@ -1,7 +1,7 @@
 (ns autojournal.calendar
   (:require [autojournal.env-switching :refer [env-switch]]
             [autojournal.schemas :refer [Event]]
-            [cljs-time.coerce :refer [from-long]]))
+            [cljs-time.coerce :refer [from-long to-date]]))
 
 
 (defn get-calendar-name
@@ -19,10 +19,10 @@
     {:node #(prn event)
      :app-script
      (fn []
-       (let [calendar (. js/CalendarApp
-                         (getCalendarsByName (get-calendar-name event)))]
+       (let [calendar (first (. js/CalendarApp
+                                (getCalendarsByName (get-calendar-name event))))]
          (. calendar (createEvent (:summary event)
-                                  (from-long (:start event))
-                                  (from-long (:end event))
+                                  (to-date (from-long (:start event)))
+                                  (to-date (from-long (:end event)))
                                   (clj->js {:description
                                             (:description event)})))))}))

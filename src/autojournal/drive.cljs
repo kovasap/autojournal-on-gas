@@ -39,26 +39,32 @@
                                         (.getDataAsString blob)))]
     (-two-d-array-to-maps two-d-array)))
 
-(declare -get-file-contents)
+(declare -get-blob-contents)
 
 (defn -get-zipped-files
   [zip-blob]
   (reduce concat
-          (mapv -get-file-contents
+          (mapv -get-blob-contents
                 (.unzip js/Utilities zip-blob))))
+
+(defn -get-blob-contents
+  [blob]
+  (cond 
+    (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
+    (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
+    :else [(.getDataAsString blob)]))
 
 (defn -get-file-contents
   [file]
-  (if (nil? file)
-    []
-    (let [blob (.getBlob file)
-          id (.getId file)]
-      (cond 
-        (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
-        (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
-        (= (.getMimeType file)
-           "application/vnd.google-apps.spreadsheet") [(sheet-to-maps id)]
-        :else [(.getDataAsString blob)])))) 
+  (prn file)
+  (prn (.getName file))
+  (cond
+    (nil? file) []
+    (= (.getMimeType file)
+     "application/vnd.google-apps.spreadsheet") [(sheet-to-maps
+                                                   (.getId file))]
+    :else (-get-blob-contents (.getBlob file))))
+       
   
 (defn get-files
   [filename]
