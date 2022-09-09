@@ -44,3 +44,7 @@ node dev-Code.js
  - Send emails with insights (perhaps with biomarker correlator links)
  - Use notification emails from services (e.g. GitHub) as a way to get data into
  the system
+
+## Food Tracking
+
+Use https://github.com/jrmycanady/cronometer-export to get food data.
