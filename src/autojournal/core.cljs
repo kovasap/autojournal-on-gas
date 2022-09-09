@@ -4,7 +4,7 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.calendar :as calendar]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
-            [autojournal.food-summary :as food-summary]
+            [autojournal.food.main :as food-summary]
             [autojournal.drive :as drive]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
