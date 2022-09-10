@@ -1,9 +1,13 @@
 (ns autojournal.food.food-parsing
   (:require [autojournal.testing-utils :refer [assert=]]
-            [autojournal.food.common :refer [units-map Food -singular-fixed]]
+            [autojournal.schemas :refer [Event]]
+            [autojournal.food.common :refer [units-map Meal Food singular-fixed]]
+            [cljs-time.core :refer [plus minutes to-default-time-zone
+                                    from-default-time-zone to-utc-time-zone]]
+            [cljs-time.coerce :refer [to-long from-date]]
+            [cljs.pprint :refer [pprint]]
             [clojure.string :as st
-             :refer [split split-lines lower-case join
-                     starts-with? includes? trim]]))
+             :refer [split-lines lower-case trim]]))
 
 ; ------------------------- Food Parsing ---------------------------------
 
@@ -80,7 +84,7 @@
   (let [[quantity units food]
         (extract-units (numberify (lower-case (trim raw-food))))
         [summed-quantity no-and-food] (-sum-and-quantity quantity food)]
-    {:name (-singular-fixed (-remove-of no-and-food))
+    {:name (singular-fixed (-remove-of no-and-food))
      :quantity summed-quantity
      :quantity-units units}))
   
@@ -109,8 +113,26 @@
 
 
 (defn row->meal
+  {:malli/schema [:=> [:cat [:map-of :keyword :string]] Meal]}
   [row]
   {:datetime (:Timestamp row)
-   :foods     (parse-foods (:Foods row))
-   :oil       ((keyword "Oil Amount") row)
-   :picture   (:Picture.http row)})
+   :foods    (parse-foods (:Foods row))
+   :oil      ((keyword "Oil Amount") row)
+   :picture  (:Picture.http row)})
+
+; Will probably need to roundtrip through strings to get daylight savings time
+; right.
+; The problem is that the timestamps in the momentodb table are local times
+; without a timezone label, so when we convert them to unix timestamp longs
+; here they are not actually correct, since unix timestamps are UTC.
+(def pdt-offset (* 25200 1000))
+
+(defn meal->event
+  {:malli/schema [:=> [:cat Meal] Event]}
+  [meal]
+  {:start       (+ pdt-offset (to-long (:datetime meal)))
+   :end         (+ pdt-offset
+                   (to-long (plus (from-date (:datetime meal)) (minutes 15))))
+   :summary     "Meal"
+   :foods       (:foods meal)
+   :description (with-out-str (pprint (:foods meal)))})

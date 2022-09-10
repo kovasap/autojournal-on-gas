@@ -14,7 +14,7 @@ See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-scrip
   1. `sudo apt install joker`
   1. Clone this repository and cd into the base directory
   1. Set up a `clasp` project as instructed
-  1. If a project already exists, just `clasp login`.
+  1. If a project already exists, just `clasp login` and `clasp clone`.
 
 ## Deployment 
 

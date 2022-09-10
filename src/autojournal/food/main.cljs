@@ -1,10 +1,11 @@
 (ns autojournal.food.main
   (:require [autojournal.sheets :as sheets]
             [autojournal.gmail :as gmail]
+            [autojournal.calendar :as calendar]
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [node-only assert=]]
             [autojournal.food.food-db :refer [get-food-db add-db-data-to-meals]]
-            [autojournal.food.food-parsing :refer [row->meal]]
+            [autojournal.food.food-parsing :refer [row->meal meal->event]]
             [autojournal.food.report-email :refer [build-report-email]]
             [autojournal.food.common :refer [DAYS-TO-SUMMARIZE food-sheet-name Meal]]
             [cljs.pprint :refer [pprint]]
@@ -21,9 +22,9 @@
 
 (defn recent-meals
   {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
-  [food-data]
+  [food-data days]
   (let [today (js/Date.)]
-    (filter #(< (days-between (:datetime %) today) DAYS-TO-SUMMARIZE)
+    (filter #(< (days-between (:datetime %) today) days)
             food-data)))
 
 (defn send-report
@@ -34,10 +35,20 @@
         email-body (if (= 0 (count all-meals))
                      (str "No foods in last " DAYS-TO-SUMMARIZE
                           ", did you sync momentodb?")
-                     (-> (recent-meals all-meals)
+                     (-> (recent-meals all-meals DAYS-TO-SUMMARIZE)
                          (add-db-data-to-meals food-db)
                          (build-report-email)))]
     (gmail/send-self-mail "Daily Report" email-body)))
+
+
+(defn update-calendar!
+  []
+  (let [all-meals (map row->meal (first (drive/get-files food-sheet-name)))
+        todays-meals (recent-meals all-meals 1)]
+    (prn "MEALS")
+    (prn todays-meals)
+    (mapv calendar/add-event! (map meal->event todays-meals))))
+
 
 ; Necessary to def these because the map gets confused by the extra #inst token
 (def t1 #inst "2022-08-11T18:53:12.275-00:00")

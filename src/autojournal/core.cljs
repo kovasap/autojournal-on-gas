@@ -15,13 +15,14 @@
             [malli.dev.pretty :as pretty]))
 
 (defn ^:export update-lifelog-with-today []
-  (let [today (today)
-        yesterday (minus today (days 1))
-        events (location/get-events
-                 (to-long yesterday)
-                 (to-long today))]
-    (calendar/add-event! (first events))
-    (sheets/update-events! events)))
+  (food-summary/update-calendar!)
+  #_(let [today (today)
+          yesterday (minus today (days 1))
+          events (location/get-events
+                   (to-long yesterday)
+                   (to-long today))]
+      (calendar/add-event! (first events))
+      (sheets/update-events! events)))
 
 (defn ^:export summarize-food []
   (food-summary/send-report))

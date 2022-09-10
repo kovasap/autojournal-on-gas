@@ -37,7 +37,7 @@
    "medium" []
    "large" []})
 
-(defn -singular-fixed
+(defn singular-fixed
   [s]
   (cond
     (= s "olives") "olive"

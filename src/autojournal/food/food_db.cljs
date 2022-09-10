@@ -83,7 +83,7 @@
   (let [lower-food (lower-case food-name)
         no-punc (st/replace lower-food #",|\." "")
         no-descrip (first (split lower-food #","))
-        no-descrip-singular (-singular-fixed no-descrip)
+        no-descrip-singular (singular-fixed no-descrip)
         w-preps (reduce concat (for [prep preparations
                                      :when (includes? lower-food prep)]
                                  [(str prep " " no-descrip-singular)
