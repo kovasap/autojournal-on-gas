@@ -2,6 +2,7 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.gmail :as gmail]
             [autojournal.calendar :as calendar]
+            [autojournal.time :refer [recent-items]]
             [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [node-only assert=]]
             [autojournal.food.food-db :refer [get-food-db add-db-data-to-meals]]
@@ -15,18 +16,6 @@
 
 ; --------------- Main -----------------------------------------
 
-(defn days-between
-  [date1 date2]
-  (let [diff_ms (abs (- (.getTime date1) (.getTime date2)))]
-    (/ diff_ms 1000.0 60 60 24)))
-
-(defn recent-meals
-  {:malli/schema [:=> [:cat [:sequential Meal]] [:sequential Meal]]}
-  [food-data days]
-  (let [today (js/Date.)]
-    (filter #(< (days-between (:datetime %) today) days)
-            food-data)))
-
 (defn send-report
   []
   (prn (first (drive/get-files food-sheet-name)))
@@ -35,7 +24,7 @@
         email-body (if (= 0 (count all-meals))
                      (str "No foods in last " DAYS-TO-SUMMARIZE
                           ", did you sync momentodb?")
-                     (-> (recent-meals all-meals DAYS-TO-SUMMARIZE)
+                     (-> (recent-items all-meals DAYS-TO-SUMMARIZE)
                          (add-db-data-to-meals food-db)
                          (build-report-email)))]
     (gmail/send-self-mail "Daily Report" email-body)))
@@ -44,7 +33,7 @@
 (defn update-calendar!
   []
   (let [all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        todays-meals (recent-meals all-meals 1)]
+        todays-meals (recent-items all-meals 1)]
     (prn "MEALS")
     (prn todays-meals)
     (mapv calendar/add-event! (map meal->event todays-meals))))
