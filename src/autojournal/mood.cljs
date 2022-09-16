@@ -1,7 +1,12 @@
 (ns autojournal.mood
   (:require [autojournal.testing-utils :refer [assert=]]
             [autojournal.time :refer [JsDate recent-items]]
+            [cljs-time.core :refer [plus minutes]]
+            [cljs-time.coerce :refer [to-long from-date]]
+            [cljs.pprint :refer [pprint]]
             [autojournal.schemas :refer [Event]]))
+
+(def mood-sheet-name "Mood")
 
 ; TODO add the rest of the items.
 (def Entry
@@ -10,13 +15,13 @@
    [:activities [:sequential :string]]])
 
 
-(defn row->meal
-  {:malli/schema [:=> [:cat [:map-of :keyword :string]] Meal]}
+(defn row->entry
+  {:malli/schema [:=> [:cat [:map-of :keyword :string]] Entry]}
   [row]
-  {:datetime (:Timestamp row)
-   :foods    (parse-foods (:Foods row))
-   :oil      ((keyword "Oil Amount") row)
-   :picture  (:Picture.http row)})
+  {:datetime   (:Timestamp row)
+   :activities [(:Activity row)
+                ((keyword "Activity 2") row)
+                ((keyword "Activity 2") row)]})
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
@@ -25,20 +30,20 @@
 ; here they are not actually correct, since unix timestamps are UTC.
 (def pdt-offset (* 25200 1000))
 
-(defn meal->event
-  {:malli/schema [:=> [:cat Meal] Event]}
-  [meal]
-  {:start       (+ pdt-offset (to-long (:datetime meal)))
+(defn entry->event
+  {:malli/schema [:=> [:cat Entry] Event]}
+  [entry]
+  {:start       (+ pdt-offset (to-long (:datetime entry)))
    :end         (+ pdt-offset
-                   (to-long (plus (from-date (:datetime meal)) (minutes 15))))
-   :summary     "Meal"
-   :foods       (:foods meal)
-   :description (with-out-str (pprint (:foods meal)))})
+                   (to-long (plus (from-date (:datetime entry)) (minutes 15))))
+   :summary     "Entry"
+   :foods       (:foods entry)
+   :description (with-out-str (pprint (:foods entry)))})
 
 (defn update-calendar!
   []
-  (let [all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        todays-meals (recent-meals all-meals 1)]
+  (let [all-entrys (map row->entry (first (drive/get-files mood-sheet-name)))
+        todays-entrys (recent-items all-entrys 1)]
     (prn "MOODS")
-    (prn todays-meals)
-    (mapv calendar/add-event! (map meal->event todays-meals))))
+    (prn todays-entrys)
+    (mapv calendar/add-event! (map entry->event todays-entrys))))
