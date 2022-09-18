@@ -47,4 +47,5 @@ node dev-Code.js
 
 ## Food Tracking
 
-Use https://github.com/jrmycanady/cronometer-export to get food data.
+Use https://github.com/jrmycanady/cronometer-export/pull/2/files to get food
+data.
