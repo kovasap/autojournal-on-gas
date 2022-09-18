@@ -123,10 +123,12 @@
   ; [:details
   ;  [:summary "All foods by " nutrient]
   [:p "All foods by " nutrient]
-  (make-table ["Food" nutrient]
+  (make-table ["Food" "Quantity" "Units" nutrient]
               (reverse
                 (sort-by last (for [food (combine-duplicate-foods foods)]
                                 [(:name food)
+                                 (:quantity food)
+                                 (:quantity-units food)
                                  (get (:nutrients food) nutrient)])))))
                                 
 ; TODO normalize all volumes to cups, then tabulate
