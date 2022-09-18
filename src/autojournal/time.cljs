@@ -11,7 +11,7 @@
   {:malli/schema [:=> [:cat [:sequential [:map [:datetime JsDate]]]
                        :integer]
                   [:sequential [:map [:datetime JsDate]]]]}
-  [food-data days]
+  [data days]
   (let [today (js/Date.)]
     (filter #(< (days-between (:datetime %) today) days)
-            food-data)))
+            data)))

@@ -1,25 +1,31 @@
 (ns autojournal.calendar
   (:require [autojournal.env-switching :refer [env-switch]]
             [autojournal.schemas :refer [Event]]
-            [cljs-time.coerce :refer [from-long to-date]]))
+            [cljs-time.coerce :refer [from-long to-date to-long]]))
 
 
-; TODO use atom to cache calls if necessary
+(def get-cal-by-name-cached
+  (memoize (fn [cal-name]
+             (first (. js/CalendarApp (getCalendarsByName cal-name))))))
+
 (defn get-calendar
   {:malli/schema [:=> [:cat Event] :any]}
   [event]
-  (let [cal-name (cond
-                    (contains? event :lat) "Locations and Travel"
-                    (contains? event :foods) "Food"
-                    :else "")]
-    (first (. js/CalendarApp
-              (getCalendarsByName cal-name)))))
-
+  (get-cal-by-name-cached
+    (cond
+       (contains? event :lat) "Locations and Travel"
+       (contains? event :foods) "Food"
+       (contains? event :activities) "Mood"
+       :else "")))
 
 (defn get-js-start-end-times
   [event]
   [(to-date (from-long (:start event)))
    (to-date (from-long (:end event)))])
+
+
+(defn =tol [a b] (> 1000 (Math/abs (- a b))))
+
 
 (defn delete-duplicate-event!
   [event]
@@ -31,7 +37,8 @@
                          existing-events (. calendar
                                             (getEvents start-time end-time))]
                      (doseq [cal-event existing-events]
-                       (if (= (. cal-event getStartTime) start-time)
+                       (if (=tol (to-long (. cal-event getStartTime))
+                                 (:start event))
                          (. cal-event deleteEvent)))))}))
 
 (defn add-event!
@@ -42,8 +49,7 @@
      :app-script (fn []
                    (let [calendar (get-calendar event)
                          [start-time end-time] (get-js-start-end-times event)]
-                     (prn "EVEND")
-                     (prn event)
+                     (prn "Adding" (:summary event))
                      (delete-duplicate-event! event)
                      (. calendar
                         (createEvent (:summary event)

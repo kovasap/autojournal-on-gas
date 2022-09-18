@@ -6,10 +6,6 @@ function summarize_food() {
   autojournal.core.summarize_food();
 }
 
-function update_lifelog_with_today() {
-  autojournal.core.update_lifelog_with_today();
-}
-
-function regenerate_all() {
+function update_lifelog() {
   autojournal.core.update_lifelog();
 }

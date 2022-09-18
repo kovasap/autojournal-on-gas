@@ -7,7 +7,7 @@
             [cljs-time.coerce :refer [to-long from-date]]
             [cljs.pprint :refer [pprint]]
             [clojure.string :as st
-             :refer [split-lines lower-case trim]]))
+             :refer [split-lines lower-case trim join]]))
 
 ; ------------------------- Food Parsing ---------------------------------
 
@@ -100,7 +100,7 @@
          (parse-food "one carrot"))
 (assert= {:name "carrot", :quantity 1, :quantity-units "cup"}
          (parse-food "one cup of carrots"))
-(assert= {:name "carrot", :quantity 1, :quantity-units "unit"}
+(assert= {:name "carrot", :quantity 1.5, :quantity-units "unit"}
          (parse-food "one and one half carrot"))
      
 
@@ -132,7 +132,7 @@
   [meal]
   {:start       (+ pdt-offset (to-long (:datetime meal)))
    :end         (+ pdt-offset
-                   (to-long (plus (from-date (:datetime meal)) (minutes 15))))
-   :summary     "Meal"
+                   (to-long (plus (from-date (:datetime meal)) (minutes 30))))
+   :summary     (join ", " (map :name (:foods meal)))
    :foods       (:foods meal)
-   :description (with-out-str (pprint (:foods meal)))})
+   :description (with-out-str (pprint (dissoc meal :datetime)))})

@@ -48,8 +48,8 @@
 
 (defn get-existing-aliases
   {:malli/schema [:=> [:cat] [:map-of FoodName [:sequential FoodName]]]}
-  []
-  (into {} (for [row (get-raw-rows food-db-sheet-name)]
+  [rows]
+  (into {} (for [row rows]
              [(get row "Food Name")
               (split (get row "Aliases") #"\n")])))
     
@@ -118,14 +118,15 @@
      units)))
 
 (defn parse-cronometer-db
-  {:malli/schema [:=> [:cat [:map-of :string :string]]
+  {:malli/schema [:=> [:cat [:sequential [:map-of :string :string]]
+                            [:sequential [:map-of :string :string]]]
                    [:sequential RawCronFood]]}
-  [rows]
+  [rows food-db-rows]
   ; For getting test data.
   ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
   ;                             "Carbs (g)"
   ;            (take 10 rows)]
-  (let [aliases (get-existing-aliases)]
+  (let [aliases (get-existing-aliases food-db-rows)]
     ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
     (vals (apply merge-with merge-food-units
                  (for [row rows
@@ -143,38 +144,56 @@
                              (str "Amount " (simplify-db-unit units))
                              (js/parseFloat quantity)))})))))
 
-(assert=
-  '({"Category" "Vegetables and Vegetable Products",
-     "Food Name" "Potatoes, Russet, Flesh and Skin, Baked",
-     "Energy (kcal)" 164.35,
-     "Carbs (g)" 37.09,
-     "Aliases" "potatoes russet flesh and skin baked\npotatoes",
-     "Amount medium" 1}
-    {"Category" "Breakfast Cereals",
-     "Food Name" "Oatmeal, Regular or Quick, Dry",
-     "Energy (kcal)" 100,
-     "Carbs (g)" 50,
-     "Aliases" "oatmeal regular or quick dry\noatmeal",
-     "Amount g" 100,
-     "Amount cup" 50}
-    {"Category" "Beverages",
-     "Food Name" "Tap Water",
-     "Energy (kcal)" 0,
-     "Carbs (g)" 0,
-     "Aliases" "tap water",
-     "Amount g" 1000})
-  (parse-cronometer-db
-    [{"Category" "Vegetables and Vegetable Products", "Food Name" "Potatoes, Russet, Flesh and Skin, Baked", "Amount" "1.00 potato medium (2-1/4\" to 3-1/4\" dia.)", "Energy (kcal)" "164.35", "Carbs (g)" "37.09"}
-     {"Category" "Breakfast Cereals", "Food Name" "Oatmeal, Regular or Quick, Dry", "Amount" "100.00 g", "Energy (kcal)" "100.00", "Carbs (g)" "50.00"}
-     {"Category" "Breakfast Cereals", "Food Name" "Oatmeal, Regular or Quick, Dry", "Amount" "100.00 cups", "Energy (kcal)" "200.00", "Carbs (g)" "100.00"}
-     {"Category" "Beverages", "Food Name" "Tap Water", "Amount" "1000.00 g", "Energy (kcal)" "0.00", "Carbs (g)" "0.00"}]))
+(assert= (parse-cronometer-db
+           [{"Category"      "Vegetables and Vegetable Products"
+             "Food Name"     "Potatoes, Russet, Flesh and Skin, Baked"
+             "Amount"        "1.00 potato medium (2-1/4\" to 3-1/4\" dia.)"
+             "Energy (kcal)" "164.35"
+             "Carbs (g)"     "37.09"}
+            {"Category"      "Breakfast Cereals"
+             "Food Name"     "Oatmeal, Regular or Quick, Dry"
+             "Amount"        "100.00 g"
+             "Energy (kcal)" "100.00"
+             "Carbs (g)"     "50.00"}
+            {"Category"      "Breakfast Cereals"
+             "Food Name"     "Oatmeal, Regular or Quick, Dry"
+             "Amount"        "100.00 cups"
+             "Energy (kcal)" "200.00"
+             "Carbs (g)"     "100.00"}
+            {"Category"      "Beverages"
+             "Food Name"     "Tap Water"
+             "Amount"        "1000.00 g"
+             "Energy (kcal)" "0.00"
+             "Carbs (g)"     "0.00"}]
+           [{}])
+         '({"Category" "Vegetables and Vegetable Products"
+            "Food Name" "Potatoes, Russet, Flesh and Skin, Baked"
+            "Energy (kcal)" 164.35
+            "Carbs (g)" 37.09
+            "Aliases" "potatoes russet flesh and skin baked\npotatoes\npotato"
+            "Amount medium" 1}
+           {"Category" "Breakfast Cereals"
+            "Food Name" "Oatmeal, Regular or Quick, Dry"
+            "Energy (kcal)" 100
+            "Carbs (g)" 50
+            "Aliases"
+              "oatmeal regular or quick dry\noatmeal\ndry oatmeal\noatmeal dry"
+            "Amount g" 100
+            "Amount cup" 50}
+           {"Category"      "Beverages"
+            "Food Name"     "Tap Water"
+            "Energy (kcal)" 0
+            "Carbs (g)"     0
+            "Aliases"       "tap water"
+            "Amount g"      1000}))
 
 (declare get-food-db)
 
 (defn ^:export make-new-food-db-sheet
   []
   (sheets/maps-to-sheet
-    (parse-cronometer-db (get-raw-rows cronometer-export-filename))
+    (parse-cronometer-db (get-raw-rows cronometer-export-filename)
+                         (get-raw-rows food-db-sheet-name))
     food-db-sheet-name)
   (prn (get-food-db)))
 

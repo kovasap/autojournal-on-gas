@@ -6,6 +6,7 @@
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
             [autojournal.food.main :as food-summary]
             [autojournal.drive :as drive]
+            [autojournal.mood :as mood]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [cljs-time.core :refer [date-time today minus days]]
@@ -14,8 +15,9 @@
             [malli.dev.cljs :as dev]
             [malli.dev.pretty :as pretty]))
 
-(defn ^:export update-lifelog-with-today []
-  (food-summary/update-calendar!)
+(defn ^:export update-lifelog []
+  (mood/update-calendar! 5)
+  (food-summary/update-calendar! 5)
   #_(let [today (today)
           yesterday (minus today (days 1))
           events (location/get-events

@@ -10,7 +10,7 @@
 (def cronometer-export-filename
   "cronometer.csv")
 
-(def DAYS-TO-SUMMARIZE 5)
+(def DAYS-TO-SUMMARIZE 1)
 
 (def FoodName :string)
 (def NutrientName :string)

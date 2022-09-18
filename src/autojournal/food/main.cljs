@@ -18,7 +18,6 @@
 
 (defn send-report
   []
-  (prn (first (drive/get-files food-sheet-name)))
   (let [food-db (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))
         email-body (if (= 0 (count all-meals))
@@ -31,11 +30,9 @@
 
 
 (defn update-calendar!
-  []
+  [days]
   (let [all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        todays-meals (recent-items all-meals 1)]
-    (prn "MEALS")
-    (prn todays-meals)
+        todays-meals (recent-items all-meals days)]
     (mapv calendar/add-event! (map meal->event todays-meals))))
 
 
@@ -108,13 +105,13 @@
      :quantity-units "cup"
      :nutrients {"Energy (kcal)" 10, "Carbs (g)" 0}}}})
 
-(node-only
- #(gmail/send-self-mail "Daily Report"
-                        (build-report-email
-                         (add-db-data-to-meals
-                          (map row->meal
-                               '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
-                                 {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one carrot\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
-                                 {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
-                                 {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
-                          test-food-db))))
+#_(node-only
+   #(gmail/send-self-mail "Daily Report"
+                          (build-report-email
+                           (add-db-data-to-meals
+                            (map row->meal
+                                 '({:Timestamp t1, :Foods "one cup cauliflower \n 1/2 cup steamed rice\n", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "TWZbOlhGSGszUkRPJUgobkBzTUQ"}
+                                   {:Timestamp t2, :Foods "half cup rice\none cup cauliflower\none cup tomatoes\n one carrot\n1/2 cup bell pepper\n1/2 cup olives", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "UHh3ZVRpO3cjPG90OWcpKFAjbGI"}
+                                   {:Timestamp t3, :Foods "half cup rice", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "IzFzV1lKenM6Rz5ANmsoTExdODY"}
+                                   {:Timestamp t4, :Foods "", (keyword "Oil Amount") "None", :Picture "", :Picture.http "", :__id "R1QmJiF1Om8zMFsyZE4hQnRKUj4"}))
+                            test-food-db))))
