@@ -16,12 +16,15 @@
   {:malli/schema [:=> [:cat :string] :string]}
   [s]
   (-> s
+      (st/replace #"quarter" "0.25 ")
       (st/replace #"one half " "0.5 ")
+      ; (st/replace #"one and a half " "1.5 ")
       (st/replace #"1/3 " "0.333 ")
       (st/replace #"1/2 " "0.5 ")
       (st/replace #"1/4 " "0.25 ")
       (st/replace #"3/4 " "0.75 ")
       (st/replace #"one " "1 ")
+      (st/replace #"a half " "0.5 ")
       (st/replace #"half " "0.5 ")
       (st/replace #"two " "2 ")
       (st/replace #"three " "3 ")
@@ -71,20 +74,20 @@
     (if (nil? no-of-food) of-food? no-of-food)))
 
 (defn -sum-and-quantity
-  [quantity and-food?]
-  (let [no-and-food (last (re-matches #"and\s+(.+)" and-food?))]
-    (if (nil? no-and-food)
-      [(js/parseFloat quantity) and-food?]
-      (let [[quantity2 _ food] (extract-unitless-quantity no-and-food)]
-        [(+ (js/parseFloat quantity) (js/parseFloat quantity2)) food]))))
+  [quantity]
+  (let [quantities #p (rest (re-matches #"(.+)\s+and\s+(.+)" quantity))]
+    (if (empty? quantities)
+      (js/parseFloat quantity)
+      (let [[quantity1 quantity2] quantities]
+        (+ (js/parseFloat quantity1) (js/parseFloat quantity2))))))
 
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
   (let [[quantity units food]
-        (extract-units (numberify (lower-case (trim raw-food))))
-        [summed-quantity no-and-food] (-sum-and-quantity quantity food)]
-    {:name (singular-fixed (-remove-of no-and-food))
+        #p (extract-units #p (numberify (lower-case (trim raw-food))))
+        summed-quantity #p (-sum-and-quantity quantity)]
+    {:name (singular-fixed (-remove-of food))
      :quantity summed-quantity
      :quantity-units units}))
   
@@ -102,7 +105,13 @@
          (parse-food "one cup of carrots"))
 (assert= {:name "carrot", :quantity 1.5, :quantity-units "unit"}
          (parse-food "one and one half carrot"))
-     
+(assert= {:name "almond", :quantity 6, :quantity-units "unit"}
+         (parse-food "six almond"))
+(assert= {:name "green bean", :quantity 2, :quantity-units "cup"}
+         (parse-food "two cups green beans"))
+(assert= {:name "tea", :quantity 1.5, :quantity-units "cup"}
+         (parse-food "one and a half cup  tea"))
+
 
 (defn parse-foods
   {:malli/schema [:=> [:cat :string] [:sequential Food]]}
