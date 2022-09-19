@@ -75,7 +75,7 @@
 
 (defn -sum-and-quantity
   [quantity]
-  (let [quantities #p (rest (re-matches #"(.+)\s+and\s+(.+)" quantity))]
+  (let [quantities (rest (re-matches #"(.+)\s+and\s+(.+)" quantity))]
     (if (empty? quantities)
       (js/parseFloat quantity)
       (let [[quantity1 quantity2] quantities]
@@ -85,8 +85,8 @@
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
   (let [[quantity units food]
-        #p (extract-units #p (numberify (lower-case (trim raw-food))))
-        summed-quantity #p (-sum-and-quantity quantity)]
+        (extract-units (numberify (lower-case (trim raw-food))))
+        summed-quantity (-sum-and-quantity quantity)]
     {:name (singular-fixed (-remove-of food))
      :quantity summed-quantity
      :quantity-units units}))
