@@ -42,5 +42,3 @@
   (cond
     (= s "olives") "olive"
     :else (singular s)))
-
-

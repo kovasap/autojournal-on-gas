@@ -315,7 +315,8 @@
   [logged-food db-food]
   (let [factor (/ (:quantity logged-food) (:quantity db-food))]
     (assoc
-      db-food
+      logged-food
+      :category  (:category db-food)
       :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
     
 
