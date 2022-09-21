@@ -36,8 +36,9 @@
       (st/replace #"nine " "9 ")
       (st/replace #"ten " "10 ")))
 
+; https://regexr.com/2vckg
 (def -decimal-regex
-  #"([0-9]+\.?[0-9]*|\.[0-9]+)\s+(.+)")
+  #"(?!.*([0-9]+\.?[0-9]*|\.[0-9]+))\s+(.+)")
 
 (defn -food-regex
   [raw-unit]
@@ -46,10 +47,10 @@
 (defn extract-unitless-quantity
   "Returns [amount \"unit\" food] for a food string without any units in it."
   [food-str]
-  (let [[quantity food] (rest (re-matches -decimal-regex food-str))]
-    (if (nil? quantity)
+  (let [food (last (re-find -decimal-regex food-str))]
+    (if (nil? food)
       ["1" "unit" food-str]
-      [quantity "unit" food])))
+      [(trim (st/replace food-str food "")) "unit" food])))
 
 (defn extract-units
   "Returns [amount units food]."
@@ -84,32 +85,32 @@
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
   [raw-food]
-  (let [[quantity units food]
-        (extract-units (numberify (lower-case (trim raw-food))))
-        summed-quantity (-sum-and-quantity quantity)]
-    {:name (singular-fixed (-remove-of food))
-     :quantity summed-quantity
+  (let [[quantity units food] (extract-units (numberify (lower-case
+                                                          (trim raw-food))))
+        summed-quantity       (-sum-and-quantity quantity)]
+    {:name           (singular-fixed (-remove-of food))
+     :quantity       summed-quantity
      :quantity-units units}))
   
-(assert= {:name "potato", :quantity 3, :quantity-units "small"}
+(assert= {:name "potato" :quantity 3 :quantity-units "small"}
          (parse-food "three small potatoes"))
-(assert= {:name "craisin", :quantity 0.5, :quantity-units "cup"}
+(assert= {:name "craisin" :quantity 0.5 :quantity-units "cup"}
          (parse-food "half cup craisins"))
-(assert= {:name "popcorn kernel", :quantity 0.333, :quantity-units "cup"}
+(assert= {:name "popcorn kernel" :quantity 0.333 :quantity-units "cup"}
          (parse-food "1/3 cup popcorn kernels"))
-(assert= {:name "nectarine", :quantity 1, :quantity-units "unit"}
+(assert= {:name "nectarine" :quantity 1 :quantity-units "unit"}
          (parse-food "nectarine"))
-(assert= {:name "carrot", :quantity 1, :quantity-units "unit"}
+(assert= {:name "carrot" :quantity 1 :quantity-units "unit"}
          (parse-food "one carrot"))
-(assert= {:name "carrot", :quantity 1, :quantity-units "cup"}
+(assert= {:name "carrot" :quantity 1 :quantity-units "cup"}
          (parse-food "one cup of carrots"))
-(assert= {:name "carrot", :quantity 1.5, :quantity-units "unit"}
+(assert= {:name "carrot" :quantity 1.5 :quantity-units "unit"}
          (parse-food "one and one half carrot"))
-(assert= {:name "almond", :quantity 6, :quantity-units "unit"}
+(assert= {:name "almond" :quantity 6 :quantity-units "unit"}
          (parse-food "six almond"))
-(assert= {:name "green bean", :quantity 2, :quantity-units "cup"}
+(assert= {:name "green bean" :quantity 2 :quantity-units "cup"}
          (parse-food "two cups green beans"))
-(assert= {:name "tea", :quantity 1.5, :quantity-units "cup"}
+(assert= {:name "tea" :quantity 1.5 :quantity-units "cup"}
          (parse-food "one and a half cup  tea"))
 
 
