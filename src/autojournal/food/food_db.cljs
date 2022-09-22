@@ -14,7 +14,7 @@
                      starts-with? includes? trim]]))
 
 
-; -------------------- Food Database Construction --------------------------  
+; -------------------- Food Database Construction --------------------------
 
 (defn stringify-keys
   [m]
@@ -53,7 +53,7 @@
   (into {} (for [row rows]
              [(get row "Food Name")
               (split (get row "Aliases") #"\n")])))
-    
+
 
 ; A flattened food map pulled right from a cronometer export
 (def RawCronFood
@@ -76,8 +76,9 @@
 
 (def preparations
   #{"cooked" "raw" "chopped" "dry" "unsweetened"})
-  
 
+
+; TODO delete - this isn't useful now that we have searching
 (defn generate-alt-names
   {:malli/schema [:=> [:cat FoodName] [:sequential FoodName]]}
   [food-name]
@@ -106,6 +107,7 @@
       trim
       #(get {"tablespoon" "tbsp"
              "teaspoon" "tsp"
+             "fluid ounce" "fl oz"
              "cups" "cup"}
             % %)
       #(if (includes? % ",") (first (split % #",")) %)
@@ -118,26 +120,47 @@
       lower-case)
      units)))
 
+(defn split-cronometer-unit
+  [cron-unit]
+  (let [[raw-quantity units] (split (str cron-unit) #" " 2)
+        quantity (js/parseFloat raw-quantity)]
+    (if (and (not (nil? units)) (starts-with? units "x "))
+      (let [[_ multiplier units] (split units #" " 3)]
+        [(* (js/parseFloat multiplier) quantity) units])
+      [quantity units])))
+                  
+
+(assert= (split-cronometer-unit "1.00 x 0.25 tsp")
+         [0.25 "tsp"])
+(assert= (split-cronometer-unit "2.50 x 0.5 cup")
+         [1.25 "cup"])
+(assert= (split-cronometer-unit "2.50 cup, whole pieces")
+         [2.5 "cup, whole pieces"])
+(assert= (split-cronometer-unit "246.00 g")
+         [246 "g"])
+
+
 (defn parse-cronometer-db
-  {:malli/schema [:=> [:cat [:sequential [:map-of :string :string]]]
-                   [:sequential RawCronFood]]}
+  {:malli/schema [:=>
+                  [:cat [:sequential [:map-of :string :string]]]
+                  [:sequential RawCronFood]]}
   [rows]
   ; For getting test data.
   ; (prn (mapv #(select-keys % ["Category" "Food Name" "Amount" "Energy (kcal)"
   ;                             "Carbs (g)"
   ;            (take 10 rows)]
   ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs
-  (vals (apply merge-with merge-food-units
-               (for [row rows
-                     :let [food-name (get row "Food Name")
-                           [quantity units] (split (str (get row "Amount"))
-                                                   #" " 2)]]
-                 {food-name
-                   (-> row
-                    (dissoc "Day" "Time" "Group" "Amount")
-                    (floatify-vals)
-                    (assoc (str "Amount " (simplify-db-unit units))
-                           (js/parseFloat quantity)))}))))
+  (vals
+    (apply merge-with
+      merge-food-units
+      (for [row  rows
+            :let [food-name        (get row "Food Name")
+                  [quantity units] (split-cronometer-unit (get row "Amount"))]]
+        {food-name (-> row
+                       (dissoc "Day" "Time" "Group" "Amount")
+                       (floatify-vals)
+                       (assoc (str "Amount " (simplify-db-unit units))
+                              quantity))}))))
 
 (assert= (parse-cronometer-db
            [{"Category"      "Vegetables and Vegetable Products"
@@ -164,21 +187,17 @@
             "Food Name" "Potatoes, Russet, Flesh and Skin, Baked"
             "Energy (kcal)" 164.35
             "Carbs (g)" 37.09
-            "Aliases" "potatoes russet flesh and skin baked\npotatoes\npotato"
             "Amount medium" 1}
            {"Category" "Breakfast Cereals"
             "Food Name" "Oatmeal, Regular or Quick, Dry"
             "Energy (kcal)" 100
             "Carbs (g)" 50
-            "Aliases"
-              "oatmeal regular or quick dry\noatmeal\ndry oatmeal\noatmeal dry"
             "Amount g" 100
             "Amount cup" 50}
            {"Category"      "Beverages"
             "Food Name"     "Tap Water"
             "Energy (kcal)" 0
             "Carbs (g)"     0
-            "Aliases"       "tap water"
             "Amount g"      1000}))
 
 (declare get-food-db)
@@ -186,17 +205,19 @@
 (defn merge-rows
   "Merge Aliases, overwrite with old Category."
   [existing-rows cronometer-rows]
-  (let [existing-by-name (group-by #(get % "Food Name") existing-rows)]
-    (for [row  cronometer-rows
-          :let [food-name (get row "Food Name")]]
-      (if-let [existing-row (get existing-by-name food-name)]
-        (assoc row
-          "Aliases" (join "\n"
-                          (union (set (split (get row "Aliases") #"\n"))
-                                 (set (split (get existing-row "Aliases")
-                                             #"\n"))))
-          "Category" (get existing-row "Category"))
-        row))))
+  (if (nil? existing-rows)
+    cronometer-rows
+    (let [existing-by-name (group-by #(get % "Food Name") existing-rows)]
+      (for [row  cronometer-rows
+            :let [food-name (get row "Food Name")]]
+        (if-let [existing-row (get existing-by-name food-name)]
+          (assoc row
+            "Aliases" (join "\n"
+                            (union (set (split (get row "Aliases") #"\n"))
+                                   (set (split (get existing-row "Aliases")
+                                               #"\n"))))
+            "Category" (get existing-row "Category"))
+          row)))))
 
 (defn ^:export make-new-food-db-sheet
   []
@@ -205,7 +226,8 @@
                                                cronometer-export-filename))
         merged-rows     (merge-rows existing-rows cronometer-rows)]
     (sheets/maps-to-sheet merged-rows food-db-sheet-name)
-    (prn (get-food-db))))
+    (prn (str "Wrote new database to " food-db-sheet-name ". "
+              "Make sure to delete the old one!"))))
 
 
 ; --------------------- Food Database Retrival and Access --------------------
@@ -219,7 +241,7 @@
         :when (starts-with? k "Amount ")
         :let [unit (st/replace k #"Amount " "")]]
     [k unit quantity]))
-    
+
 (defn raw-db-row->foods
   [row]
   (for [food-name (conj (split (get row "Aliases") "\n") (get row "Food Name"))
@@ -234,15 +256,15 @@
 
 (defn parse-db-foods
   [raw-rows]
-  (for [row raw-rows]
-    (raw-db-row->foods row)))
+  (reduce concat (for [row raw-rows]
+                   (raw-db-row->foods row))))
 
 
 (defn index-db-foods
   [db-foods]
   (into {} (for [[k g] (group-by :name db-foods)]
              [k (group-by :quantity-units g)])))
-    
+
 
 #_(defn parse-raw-food-db
     [raw-db]
@@ -258,7 +280,7 @@
 
 (def test-food-db
   (index-db-foods
-    (parse-db-foods 
+    (parse-db-foods
       '({"Category" "Vegetables and Vegetable Products",
          "Food Name" "Potatoes, Russet, Flesh and Skin, Baked",
          "Energy (kcal)" 164.35,
@@ -278,7 +300,7 @@
          "Carbs (g)" 0,
          "Aliases" "tap water",
          "Amount g" 1000}))))
-  
+
 (assert=
  {"potatoes russet flesh and skin baked"
   {"medium"
@@ -327,7 +349,7 @@
     :quantity 1000,
     :quantity-units "g",
     :nutrients {"Energy (kcal)" 0, "Carbs (g)" 0}}}}
- test-food-db) 
+ test-food-db)
 
 
 (defn word-levenshtein
@@ -336,14 +358,14 @@
   (reduce + (for [query-word (split query-phrase #"\s+")]
               (apply min (for [db-word (split db-phrase #"\s+")]
                            (levenshtein query-word db-word))))))
-              
+
 (defn clean-phrase
   "Remove punctuation and make lower case."
   [phrase]
   (-> phrase
       (lower-case)
       (st/replace #",|\." "")))
- 
+
 
 (defn most-closely-matching-food
   "The food in the db that has a name or aliases closest to the input-name."
@@ -354,7 +376,7 @@
                             (word-levenshtein clean-input-name
                                               (clean-phrase db-food-name))])]
     (first (apply min-key last distances))))
-    
+
 
 (assert= (most-closely-matching-food "potato baked" test-food-db)
          "potatoes russet flesh and skin baked")
@@ -363,7 +385,7 @@
 (defn get-food-db
   {:malli/schema [:=> [:cat] FoodDB]}
   []
-  (parse-raw-food-db (get-raw-rows food-db-sheet-name)))
+  (index-db-foods (parse-db-foods (get-raw-rows food-db-sheet-name))))
 
 (defn get-scaled-db-food
   "(logged quantity / DB quantity) * DB nutrient = logged nutrient
@@ -375,7 +397,7 @@
       logged-food
       :category  (:category db-food)
       :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
-    
+
 
 (defn add-db-data-to-foods
   {:malli/schema [:=> [:cat [:sequential Food] FoodDB]

@@ -56,8 +56,6 @@
 
 (defn -get-file-contents
   [file]
-  (prn file)
-  (prn (.getName file))
   (cond
     (nil? file) []
     (= (.getMimeType file)
