@@ -123,10 +123,11 @@
   ; [:details
   ;  [:summary "All foods by " nutrient]
   [:p "All foods by " nutrient]
-  (make-table ["Food" "Quantity" "Units" nutrient]
+  (make-table ["Food" "DB name" "Quantity" "Units" nutrient]
               (reverse
                 (sort-by last (for [food (combine-duplicate-foods foods)]
                                 [(:name food)
+                                 (:db-name food)
                                  (:quantity food)
                                  (:quantity-units food)
                                  (get (:nutrients food) nutrient)])))))

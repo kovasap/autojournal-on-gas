@@ -240,12 +240,13 @@
   (for [[k quantity] row
         :when (starts-with? k "Amount ")
         :let [unit (st/replace k #"Amount " "")]]
-    [k unit quantity]))
+    [unit quantity]))
 
 (defn raw-db-row->foods
   [row]
-  (for [food-name (conj (split (get row "Aliases") "\n") (get row "Food Name"))
-        [unit quantity] (get-amount-fields row)]
+  (for [food-name (conj (split (get row "Aliases") #"\n") (get row "Food Name"))
+        [unit quantity] #p (get-amount-fields row)
+        :when (not (= "" food-name))]
     {:name food-name
      :category (get row "Category")
      :quantity quantity
@@ -299,7 +300,13 @@
          "Energy (kcal)" 0,
          "Carbs (g)" 0,
          "Aliases" "tap water",
-         "Amount g" 1000}))))
+         "Amount g" 1000}
+        {"Category" "Beverages",
+         "Food Name" "Sprite",
+         "Energy (kcal)" 0,
+         "Carbs (g)" 0,
+         "Aliases" "",
+         "Amount g" 100}))))
 
 (assert=
  {"potatoes russet flesh and skin baked"
@@ -370,16 +377,20 @@
 (defn most-closely-matching-food
   "The food in the db that has a name or aliases closest to the input-name."
   [input-name food-db]
+  (prn (keys food-db))
+  (prn input-name)
   (let [clean-input-name (clean-phrase input-name)
         distances        (for [db-food-name (keys food-db)]
                            [db-food-name
                             (word-levenshtein clean-input-name
                                               (clean-phrase db-food-name))])]
+    (prn distances)
+    (prn (first (apply min-key last distances)))
     (first (apply min-key last distances))))
 
 
 (assert= (most-closely-matching-food "potato baked" test-food-db)
-         "potatoes russet flesh and skin baked")
+         "Potatoes, Russet, Flesh and Skin, Baked")
 
 
 (defn get-food-db
@@ -395,21 +406,24 @@
   (let [factor (/ (:quantity logged-food) (:quantity db-food))]
     (assoc
       logged-food
+      :db-name   (:name db-food)
       :category  (:category db-food)
       :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
 
 
 (defn add-db-data-to-foods
-  {:malli/schema [:=> [:cat [:sequential Food] FoodDB]
-                  [:sequential Food]]}
+  {:malli/schema [:=> [:cat [:sequential Food] FoodDB] [:sequential Food]]}
   [foods food-db]
   (for [food foods
         :let [db-food (-> food-db
-                          (get (most-closely-matching-food food food-db))
-                          (get (:quantity-units food)))]]
-    (if (nil? db-food)
-      food
-      (get-scaled-db-food food db-food))))
+                          (get #p (most-closely-matching-food (:name food)
+                                                              food-db))
+                          (get #p (simplify-db-unit (:quantity-units food))))]]
+    (if (nil? db-food) food (get-scaled-db-food food db-food))))
+
+(add-db-data-to-foods
+  [{:name "potato" :quantity-units "medium" :quantity 0.5}]
+  test-food-db)
 
 (defn add-db-data-to-meals
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]
