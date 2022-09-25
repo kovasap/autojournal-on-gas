@@ -245,7 +245,7 @@
 (defn raw-db-row->foods
   [row]
   (for [food-name (conj (split (get row "Aliases") #"\n") (get row "Food Name"))
-        [unit quantity] #p (get-amount-fields row)
+        [unit quantity] (get-amount-fields row)
         :when (not (= "" food-name))]
     {:name food-name
      :category (get row "Category")
@@ -263,8 +263,9 @@
 
 (defn index-db-foods
   [db-foods]
-  (into {} (for [[k g] (group-by :name db-foods)]
-             [k (group-by :quantity-units g)])))
+  (into {} (for [[n g] (group-by :name db-foods)]
+             [n (into {} (for [food g]
+                           [(:quantity-units food) food]))])))
 
 
 #_(defn parse-raw-food-db
@@ -377,15 +378,11 @@
 (defn most-closely-matching-food
   "The food in the db that has a name or aliases closest to the input-name."
   [input-name food-db]
-  (prn (keys food-db))
-  (prn input-name)
   (let [clean-input-name (clean-phrase input-name)
         distances        (for [db-food-name (keys food-db)]
                            [db-food-name
                             (word-levenshtein clean-input-name
                                               (clean-phrase db-food-name))])]
-    (prn distances)
-    (prn (first (apply min-key last distances)))
     (first (apply min-key last distances))))
 
 
@@ -416,14 +413,22 @@
   [foods food-db]
   (for [food foods
         :let [db-food (-> food-db
-                          (get #p (most-closely-matching-food (:name food)
-                                                              food-db))
-                          (get #p (simplify-db-unit (:quantity-units food))))]]
+                          (get (most-closely-matching-food (:name food)
+                                                           food-db))
+                          (get (simplify-db-unit (:quantity-units food))))]]
     (if (nil? db-food) food (get-scaled-db-food food db-food))))
 
-(add-db-data-to-foods
-  [{:name "potato" :quantity-units "medium" :quantity 0.5}]
-  test-food-db)
+(assert= '({:name           "potato"
+            :quantity-units "medium"
+            :quantity       0.5
+            :db-name        "Potatoes, Russet, Flesh and Skin, Baked"
+            :category       "Vegetables and Vegetable Products"
+            :nutrients      {"Energy (kcal)" 82.175
+                             "Carbs (g)"     18.545
+                             "Amount medium" 0.5}})
+         (add-db-data-to-foods
+           [{:name "potato" :quantity-units "medium" :quantity 0.5}]
+           test-food-db))
 
 (defn add-db-data-to-meals
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]
