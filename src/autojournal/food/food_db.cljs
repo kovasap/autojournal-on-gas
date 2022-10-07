@@ -8,7 +8,7 @@
             [autojournal.testing-utils :refer [node-only assert=]]
             [inflections.core :refer [singular]]
             [cljs.pprint :refer [pprint]]
-            [clojure.set :refer [union]]
+            [clojure.set :refer [union difference]]
             [clojure.string :as st
              :refer [split split-lines lower-case join
                      starts-with? includes? trim]]))
@@ -303,14 +303,14 @@
          "Food Name" "Potatoes, Russet, Flesh and Skin, Baked",
          "Energy (kcal)" 164.35,
          "Carbs (g)" 37.09,
-         "Aliases" "potatoes russet flesh and skin baked\npotatoes",
+         "Aliases" "potatoes",
          "Amount calories" 164.35
          "Amount medium" 1}
         {"Category" "Breakfast Cereals",
          "Food Name" "Oatmeal, Regular or Quick, Dry",
          "Energy (kcal)" 100,
          "Carbs (g)" 50,
-         "Aliases" "oatmeal regular or quick dry\noatmeal",
+         "Aliases" "oatmeal",
          "Amount calories" 100
          "Amount g" 100,
          "Amount cup" 50}
@@ -331,84 +331,8 @@
 
 (assert=
   test-food-db
-  {"Sprite" {"calories" {:name           "Sprite"
-                         :category       "Beverages"
-                         :quantity       0
-                         :quantity-units "calories"
-                         :nutrients      {"Energy (kcal)"   0
-                                          "Carbs (g)"       0
-                                          "Amount calories" 0
-                                          "Amount g"        100}}
-             "g"        {:name           "Sprite"
-                         :category       "Beverages"
-                         :quantity       100
-                         :quantity-units "g"
-                         :nutrients      {"Energy (kcal)"   0
-                                          "Carbs (g)"       0
-                                          "Amount calories" 0
-                                          "Amount g"        100}}}}
-  "Tap Water" {"calories" {:name           "Tap Water"
-                           :category       "Beverages"
-                           :quantity       0
-                           :quantity-units "calories"
-                           :nutrients      {"Energy (kcal)"   0
-                                            "Carbs (g)"       0
-                                            "Amount calories" 0
-                                            "Amount g"        1000}}
-               "g"        {:name           "Tap Water"
-                           :category       "Beverages"
-                           :quantity       1000
-                           :quantity-units "g"
-                           :nutrients      {"Energy (kcal)"   0
-                                            "Carbs (g)"       0
-                                            "Amount calories" 0
-                                            "Amount g"        1000}}}
-  "potatoes" {"calories" {:name           "potatoes"
-                          :category       "Vegetables and Vegetable Products"
-                          :quantity       164.35
-                          :quantity-units "calories"
-                          :nutrients      {"Energy (kcal)"   164.35
-                                           "Carbs (g)"       37.09
-                                           "Amount calories" 164.35
-                                           "Amount medium"   1}}
-              "medium"   {:name           "potatoes"
-                          :category       "Vegetables and Vegetable Products"
-                          :quantity       1
-                          :quantity-units "medium"
-                          :nutrients      {"Energy (kcal)"   164.35
-                                           "Carbs (g)"       37.09
-                                           "Amount calories" 164.35
-                                           "Amount medium"   1}}}
-  "oatmeal regular or quick dry"
-    {"calories" {:name           "oatmeal regular or quick dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       100
-                 :quantity-units "calories"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}
-     "g"        {:name           "oatmeal regular or quick dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       100
-                 :quantity-units "g"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}
-     "cup"      {:name           "oatmeal regular or quick dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       50
-                 :quantity-units "cup"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}}
-  "potatoes russet flesh and skin baked"
-    {"calories" {:name           "potatoes russet flesh and skin baked"
+  {"potatoes"
+    {"calories" {:name           "potatoes"
                  :category       "Vegetables and Vegetable Products"
                  :quantity       164.35
                  :quantity-units "calories"
@@ -416,7 +340,7 @@
                                   "Carbs (g)"       37.09
                                   "Amount calories" 164.35
                                   "Amount medium"   1}}
-     "medium"   {:name           "potatoes russet flesh and skin baked"
+     "medium"   {:name           "potatoes"
                  :category       "Vegetables and Vegetable Products"
                  :quantity       1
                  :quantity-units "medium"
@@ -424,102 +348,127 @@
                                   "Carbs (g)"       37.09
                                   "Amount calories" 164.35
                                   "Amount medium"   1}}}
-  "Oatmeal, Regular or Quick, Dry"
-    {"calories" {:name           "Oatmeal, Regular or Quick, Dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       100
-                 :quantity-units "calories"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}
-     "g"        {:name           "Oatmeal, Regular or Quick, Dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       100
-                 :quantity-units "g"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}
-     "cup"      {:name           "Oatmeal, Regular or Quick, Dry"
-                 :category       "Breakfast Cereals"
-                 :quantity       50
-                 :quantity-units "cup"
-                 :nutrients      {"Energy (kcal)"   100
-                                  "Carbs (g)"       50
-                                  "Amount calories" 100
-                                  "Amount g"        100
-                                  "Amount cup"      50}}}
-  "tap water" {"calories" {:name           "tap water"
-                           :category       "Beverages"
-                           :quantity       0
-                           :quantity-units "calories"
-                           :nutrients      {"Energy (kcal)"   0
-                                            "Carbs (g)"       0
-                                            "Amount calories" 0
-                                            "Amount g"        1000}}
-               "g"        {:name           "tap water"
-                           :category       "Beverages"
-                           :quantity       1000
-                           :quantity-units "g"
-                           :nutrients      {"Energy (kcal)"   0
-                                            "Carbs (g)"       0
-                                            "Amount calories" 0
-                                            "Amount g"        1000}}}
-  "oatmeal" {"calories" {:name           "oatmeal"
-                         :category       "Breakfast Cereals"
-                         :quantity       100
-                         :quantity-units "calories"
-                         :nutrients      {"Energy (kcal)"   100
-                                          "Carbs (g)"       50
-                                          "Amount calories" 100
-                                          "Amount g"        100
-                                          "Amount cup"      50}}
-             "g"        {:name           "oatmeal"
-                         :category       "Breakfast Cereals"
-                         :quantity       100
-                         :quantity-units "g"
-                         :nutrients      {"Energy (kcal)"   100
-                                          "Carbs (g)"       50
-                                          "Amount calories" 100
-                                          "Amount g"        100
-                                          "Amount cup"      50}}
-             "cup"      {:name           "oatmeal"
-                         :category       "Breakfast Cereals"
-                         :quantity       50
-                         :quantity-units "cup"
-                         :nutrients      {"Energy (kcal)"   100
-                                          "Carbs (g)"       50
-                                          "Amount calories" 100
-                                          "Amount g"        100
-                                          "Amount cup"      50}}}
-  "Potatoes, Russet, Flesh and Skin, Baked"
-    {"calories" {:name           "Potatoes, Russet, Flesh and Skin, Baked"
-                 :category       "Vegetables and Vegetable Products"
-                 :quantity       164.35
-                 :quantity-units "calories"
-                 :nutrients      {"Energy (kcal)"   164.35
-                                  "Carbs (g)"       37.09
-                                  "Amount calories" 164.35
-                                  "Amount medium"   1}}
-     "medium"   {:name           "Potatoes, Russet, Flesh and Skin, Baked"
-                 :category       "Vegetables and Vegetable Products"
-                 :quantity       1
-                 :quantity-units "medium"
-                 :nutrients      {"Energy (kcal)"   164.35
-                                  "Carbs (g)"       37.09
-                                  "Amount calories" 164.35
-                                  "Amount medium"   1}}})
-  
- 
-(defn word-levenshtein
-  "Sums the min distance of every word in the query against every db word."
-  [query-phrase db-phrase]
-  (reduce + (for [query-word (split query-phrase #"\s+")]
-              (apply min (for [db-word (split db-phrase #"\s+")]
-                           (levenshtein query-word db-word))))))
+   "Potatoes, Russet, Flesh and Skin, Baked"
+     {"calories" {:name           "Potatoes, Russet, Flesh and Skin, Baked"
+                  :category       "Vegetables and Vegetable Products"
+                  :quantity       164.35
+                  :quantity-units "calories"
+                  :nutrients      {"Energy (kcal)"   164.35
+                                   "Carbs (g)"       37.09
+                                   "Amount calories" 164.35
+                                   "Amount medium"   1}}
+      "medium"   {:name           "Potatoes, Russet, Flesh and Skin, Baked"
+                  :category       "Vegetables and Vegetable Products"
+                  :quantity       1
+                  :quantity-units "medium"
+                  :nutrients      {"Energy (kcal)"   164.35
+                                   "Carbs (g)"       37.09
+                                   "Amount calories" 164.35
+                                   "Amount medium"   1}}}
+   "oatmeal"   {"calories" {:name           "oatmeal"
+                            :category       "Breakfast Cereals"
+                            :quantity       100
+                            :quantity-units "calories"
+                            :nutrients      {"Energy (kcal)"   100
+                                             "Carbs (g)"       50
+                                             "Amount calories" 100
+                                             "Amount g"        100
+                                             "Amount cup"      50}}
+                "g"        {:name           "oatmeal"
+                            :category       "Breakfast Cereals"
+                            :quantity       100
+                            :quantity-units "g"
+                            :nutrients      {"Energy (kcal)"   100
+                                             "Carbs (g)"       50
+                                             "Amount calories" 100
+                                             "Amount g"        100
+                                             "Amount cup"      50}}
+                "cup"      {:name           "oatmeal"
+                            :category       "Breakfast Cereals"
+                            :quantity       50
+                            :quantity-units "cup"
+                            :nutrients      {"Energy (kcal)"   100
+                                             "Carbs (g)"       50
+                                             "Amount calories" 100
+                                             "Amount g"        100
+                                             "Amount cup"      50}}}
+   "Oatmeal, Regular or Quick, Dry"
+     {"calories" {:name           "Oatmeal, Regular or Quick, Dry"
+                  :category       "Breakfast Cereals"
+                  :quantity       100
+                  :quantity-units "calories"
+                  :nutrients      {"Energy (kcal)"   100
+                                   "Carbs (g)"       50
+                                   "Amount calories" 100
+                                   "Amount g"        100
+                                   "Amount cup"      50}}
+      "g"        {:name           "Oatmeal, Regular or Quick, Dry"
+                  :category       "Breakfast Cereals"
+                  :quantity       100
+                  :quantity-units "g"
+                  :nutrients      {"Energy (kcal)"   100
+                                   "Carbs (g)"       50
+                                   "Amount calories" 100
+                                   "Amount g"        100
+                                   "Amount cup"      50}}
+      "cup"      {:name           "Oatmeal, Regular or Quick, Dry"
+                  :category       "Breakfast Cereals"
+                  :quantity       50
+                  :quantity-units "cup"
+                  :nutrients      {"Energy (kcal)"   100
+                                   "Carbs (g)"       50
+                                   "Amount calories" 100
+                                   "Amount g"        100
+                                   "Amount cup"      50}}}
+   "tap water" {"calories" {:name           "tap water"
+                            :category       "Beverages"
+                            :quantity       0
+                            :quantity-units "calories"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        1000}}
+                "g"        {:name           "tap water"
+                            :category       "Beverages"
+                            :quantity       1000
+                            :quantity-units "g"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        1000}}}
+   "Tap Water" {"calories" {:name           "Tap Water"
+                            :category       "Beverages"
+                            :quantity       0
+                            :quantity-units "calories"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        1000}}
+                "g"        {:name           "Tap Water"
+                            :category       "Beverages"
+                            :quantity       1000
+                            :quantity-units "g"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        1000}}}
+   "Sprite"    {"calories" {:name           "Sprite"
+                            :category       "Beverages"
+                            :quantity       0
+                            :quantity-units "calories"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        100}}
+                "g"        {:name           "Sprite"
+                            :category       "Beverages"
+                            :quantity       100
+                            :quantity-units "g"
+                            :nutrients      {"Energy (kcal)"   0
+                                             "Carbs (g)"       0
+                                             "Amount calories" 0
+                                             "Amount g"        100}}}})
+
 
 (defn clean-phrase
   "Remove punctuation and make lower case."
@@ -529,15 +478,76 @@
       (st/replace #",|\." "")))
 
 
+(defn word-levenshtein
+  "Sums the min distance of every word in the query against every db word."
+  [query-phrase db-phrase]
+  (reduce + (for [query-word (split query-phrase #"\s+")]
+              (apply min (for [db-word (split db-phrase #"\s+")]
+                           (levenshtein query-word db-word))))))
+
+(def PhraseMatch
+  [:map [:matched-words [:sequential :string]]
+        [:unmatched-words [:sequential :string]]
+        ; The sum of the min distance of every matched word to the word that it
+        ; matched.
+        [:matched-distance [:sequential :string]]])
+
+(defn match-phrases
+  {:malli/schema [:=> [:cat :string :string] PhraseMatch]}
+  [query-phrase target-phrase]
+  (let [query-words   (split query-phrase #"\s+")
+        target-words  (split target-phrase #"\s+")
+        matched-words (for [qw query-words]
+                        (merge {:query-word qw}
+                               (apply min-key
+                                 :distance
+                                 (for [tw target-words]
+                                   {:target-word tw
+                                    :distance (levenshtein qw tw)}))))
+        unmatched-words (difference (set target-words)
+                                    (set (map :target-word matched-words)))]
+    {:matched-words matched-words
+     :matched-distance-sum (reduce + (map :distance matched-words))
+     :unmatched-words unmatched-words}))
+
+(defn compare-matches
+  [pm1 pm2]
+  (if (= (:matched-distance-sum pm1) (:matched-distance-sum pm2))
+    (- (count (:unmatched-words pm1)) (count (:unmatched-words pm2)))
+    (- (:matched-distance-sum pm1) (:matched-distance-sum pm2))))
+
+(defn make-target-comparer
+  [query-phrase]
+  (fn [target-phrase1 target-phrase2]
+    (compare-matches (match-phrases query-phrase (clean-phrase target-phrase1))
+                     (match-phrases query-phrase (clean-phrase target-phrase2)))))
+
+(defn rank-matches
+  [query-phrase target-phrases]
+  ; (doseq [tp target-phrases]
+  ;   (prn tp (match-phrases (clean-phrase query-phrase) tp))]
+  (let [target-comparer (make-target-comparer (clean-phrase query-phrase))]
+    (sort target-comparer target-phrases)))
+
+(assert=
+  '("Tofu, poachet"
+    "Tofu Stir Fry, with Carrots or Dark Green Vegetables"
+    "potato")
+  (rank-matches "tofu"
+                ["Tofu, poachet"
+                 "Tofu Stir Fry, with Carrots or Dark Green Vegetables"
+                 "potato"]))
+
 (defn most-closely-matching-food
-  "The food in the db that has a name or aliases closest to the input-name."
+  "The food name in the db that has a name or aliases closest to the input-name."
   [input-name food-db]
-  (let [clean-input-name (clean-phrase input-name)
-        distances        (for [db-food-name (keys food-db)]
-                           [db-food-name
-                            (word-levenshtein clean-input-name
-                                              (clean-phrase db-food-name))])]
-    (first (apply min-key last distances))))
+  (first (rank-matches input-name (keys food-db)))
+  #_(let [clean-input-name (clean-phrase input-name)
+          distances        (for [db-food-name (keys food-db)]
+                             [db-food-name
+                              (word-levenshtein clean-input-name
+                                                (clean-phrase db-food-name))])]
+      (first (apply min-key last distances))))
 
 
 (assert= (most-closely-matching-food "potato baked" test-food-db)
