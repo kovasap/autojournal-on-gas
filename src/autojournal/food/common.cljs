@@ -33,6 +33,7 @@
    "unit" ["sausage" "softgel" "tablet" "full recipe" "can" "each" "bottle"
            "dash" "per portion" "slice" "serving"]
    "fl oz" ["fluid ounce"]
+   "calories" ["cal" "calories" "calorie"]
    "small" []
    "medium" []
    "large" []})

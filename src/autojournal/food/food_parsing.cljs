@@ -20,6 +20,7 @@
       (st/replace #"one half " "0.5 ")
       ; (st/replace #"one and a half " "1.5 ")
       (st/replace #"1/3 " "0.333 ")
+      (st/replace #"2/3 " "0.666 ")
       (st/replace #"1/2 " "0.5 ")
       (st/replace #"1/4 " "0.25 ")
       (st/replace #"3/4 " "0.75 ")
@@ -112,6 +113,8 @@
          (parse-food "two cups green beans"))
 (assert= {:name "tea" :quantity 1.5 :quantity-units "cup"}
          (parse-food "one and a half cup  tea"))
+(assert= {:name "tea" :quantity 0 :quantity-units "calories"}
+         (parse-food "0 cal tea"))
 
 
 (defn parse-foods
