@@ -7,6 +7,7 @@
             [autojournal.food.main :as food-summary]
             [autojournal.drive :as drive]
             [autojournal.mood :as mood]
+            [autojournal.journal :as journal]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [cljs-time.core :refer [date-time today minus days]]
@@ -17,6 +18,7 @@
 
 (defn ^:export update-lifelog []
   (mood/update-calendar! 5)
+  (journal/update-calendar! 5)
   (food-summary/update-calendar! 5)
   #_(let [today (today)
           yesterday (minus today (days 1))

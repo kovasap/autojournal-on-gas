@@ -6,6 +6,7 @@
                                     from-default-time-zone to-utc-time-zone]]
             [cljs-time.coerce :refer [to-long from-date]]
             [cljs.pprint :refer [pprint]]
+            [clojure.set :refer [union]]
             [clojure.string :as st
              :refer [split-lines lower-case trim join]]))
 
@@ -58,16 +59,20 @@
   [food-str]
   (let [matches
         (remove empty?
-                (reduce concat
+                (reduce union
                         (for [[std-unit raw-units] units-map]
-                          (for [raw-unit (conj raw-units std-unit)]
-                            (replace {raw-unit std-unit}
-                                     (rest (re-matches (-food-regex raw-unit)
-                                                       food-str)))))))]
+                          (set (for [raw-unit (conj raw-units std-unit)]
+                                 (replace {raw-unit std-unit}
+                                          (rest (re-matches (-food-regex raw-unit)
+                                                            food-str))))))))]
     (cond
       (< 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
       (= 0 (count matches)) (extract-unitless-quantity food-str)
       :else (first matches))))
+
+(assert=
+  '("40 " "calories" "roasted seaweed")
+  (extract-units "40 calories roasted seaweed"))
     
 (defn -remove-of
   [of-food?]

@@ -1,5 +1,5 @@
 ; Deprecates in favor of the "Journal" sheet
-(ns autojournal.mood
+(ns autojournal.journal
   (:require [autojournal.testing-utils :refer [assert=]]
             [autojournal.time :refer [JsDate recent-items]]
             [autojournal.drive :as drive]
@@ -7,28 +7,41 @@
             [cljs-time.core :refer [plus minutes]]
             [cljs-time.coerce :refer [to-long from-date]]
             [cljs.pprint :refer [pprint]]
-            [clojure.string :refer [join trim]]
+            [clojure.string :refer [join trim split]]
             [autojournal.schemas :refer [Event]]))
 
-(def mood-sheet-name "Mood")
+(def sheet-name "Journal")
 
 ; TODO add the rest of the items.
 (def Entry
   [:map
    [:datetime JsDate]
-   [:activities [:sequential :string]]
+   [:activity :string]
    [:raw-data :any]])
+
+
+(defn get-elements
+  [header row]
+  (filter #(not (= "" %)) (map trim (split ((keyword header) row) #","))))
 
 
 (defn row->entry
   {:malli/schema [:=> [:cat [:map-of :keyword :string]] Entry]}
   [row]
-  {:datetime   (:Timestamp row)
-   :raw-data   row
-   :activities (into [] (filter #(not (= (trim %) ""))
-                          [(:Activity row)
-                           ((keyword "Activity 2") row)
-                           ((keyword "Activity 3") row)]))})
+  {:datetime          (:Timestamp row)
+   :raw-data          row
+   :satisfied-reasons (get-elements "Satisfied Reason" row)
+   :dissatisfied-reasons (get-elements "Dissatisfied Reason" row)
+   :physical          (get-elements "Physical" row)
+   :bathroom          (:Bathroom row)
+   :activity          (:Activity row)})
+
+(defn overall-mood
+  [entry]
+  (cond
+    (= 0 (count (:satisfied-reasons entry))) "Dissatisfied"
+    (= 0 (count (:dissatisfied-reasons entry))) "Satisfied"
+    :else "Neutral"))
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
@@ -43,17 +56,15 @@
   {:start       (+ pdt-offset (to-long (:datetime entry)))
    :end         (+ pdt-offset
                    (to-long (plus (from-date (:datetime entry)) (minutes 30))))
-   :activities  (:activities entry)
-   :summary     (join ", " (:activities entry))
+   :activity    (:activity entry)
+   :summary     (str (overall-mood entry) ": " (:activity entry))
    :description (with-out-str (pprint (dissoc (:raw-data entry)
                                               :Timestamp
                                               :__id
-                                              :Activity
-                                              (keyword "Activity 2")
-                                              (keyword "Activity 3"))))})
+                                              :Activity)))})
 
 (defn update-calendar!
   [days]
-  (let [all-entrys (map row->entry (first (drive/get-files mood-sheet-name)))
+  (let [all-entrys (map row->entry (first (drive/get-files sheet-name)))
         todays-entrys (recent-items all-entrys days)]
     (mapv calendar/add-event! (map entry->event todays-entrys))))

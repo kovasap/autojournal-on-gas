@@ -8,6 +8,7 @@
   (memoize (fn [cal-name]
              (first (. js/CalendarApp (getCalendarsByName cal-name))))))
 
+; TODO use malli types here to match instead of single keys
 (defn get-calendar
   {:malli/schema [:=> [:cat Event] :any]}
   [event]
@@ -16,6 +17,7 @@
        (contains? event :lat) "Locations and Travel"
        (contains? event :foods) "Food"
        (contains? event :activities) "Mood"
+       (contains? event :activity) "Journal"
        :else "")))
 
 (defn get-js-start-end-times
