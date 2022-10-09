@@ -1,7 +1,16 @@
 (ns autojournal.food.food-db
   (:require [autojournal.sheets :as sheets]
-            [autojournal.food.common :refer [NutrientName FoodName units-map singular-fixed Food cronometer-export-filename Meal
-                                             food-db-sheet-name]]
+            [autojournal.food.common
+             :refer
+             [NutrientName
+              FoodName
+              units-map
+              singular-fixed
+              Food
+              cronometer-export-filename
+              Meal
+              units->cups
+              food-db-sheet-name]]
             [clj-fuzzy.metrics :refer [levenshtein]]
             [autojournal.gmail :as gmail]
             [autojournal.drive :as drive]
@@ -9,9 +18,11 @@
             [inflections.core :refer [singular]]
             [cljs.pprint :refer [pprint]]
             [clojure.set :refer [union difference]]
-            [clojure.string :as st
-             :refer [split split-lines lower-case join
-                     starts-with? includes? trim]]))
+            [clojure.string
+             :as
+             st
+             :refer
+             [split split-lines lower-case join starts-with? includes? trim]]))
 
 
 ; -------------------- Food Database Construction --------------------------
@@ -148,6 +159,36 @@
   (for [row cronometer-rows]
     (assoc row "Amount calories" (get row "Energy (kcal)"))))
 
+
+(defn get-amount-fields
+  {:malli/schema [:=>
+                  [:cat RawCronFood]
+                  [:cat :string :double]]}
+  [row]
+  (for [[k quantity] row
+        :when (starts-with? k "Amount ")
+        :let [unit (st/replace k #"Amount " "")]]
+    [unit quantity]))
+
+
+(defn get-reference-unit
+  [row ])
+
+
+(defn populate-units
+  {:malli/schema [:=>
+                  [:cat [:sequential RawCronFood]]
+                  [:sequential RawCronFood]]}
+  [cronometer-rows]
+  (for [row cronometer-rows
+        :let [amounts (into {} (get-amount-fields row))]]
+    (reduce (fn [r unit]
+              (assoc r (str "Amount " unit) (convert-units)))
+            row (keys units->cups))
+    (assoc row "Amount calories" (get row "Energy (kcal)"))))
+  
+
+
 (defn parse-cronometer-db
   {:malli/schema [:=>
                   [:cat [:sequential [:map-of :string :string]]]
@@ -251,13 +292,6 @@
 (def QuantityUnits :string)
 (def FoodDB [:map-of FoodName [:map-of QuantityUnits Food]])
 
-(defn get-amount-fields
-  [row]
-  (for [[k quantity] row
-        :when (starts-with? k "Amount ")
-        :let [unit (st/replace k #"Amount " "")]]
-    [unit quantity]))
-
 (defn raw-db-row->foods
   [row]
   (for [food-name (conj (split (get row "Aliases") #"\n") (get row "Food Name"))
@@ -349,22 +383,22 @@
                                   "Amount calories" 164.35
                                   "Amount medium"   1}}}
    "Potatoes, Russet, Flesh and Skin, Baked"
-     {"calories" {:name           "Potatoes, Russet, Flesh and Skin, Baked"
-                  :category       "Vegetables and Vegetable Products"
-                  :quantity       164.35
-                  :quantity-units "calories"
-                  :nutrients      {"Energy (kcal)"   164.35
-                                   "Carbs (g)"       37.09
-                                   "Amount calories" 164.35
-                                   "Amount medium"   1}}
-      "medium"   {:name           "Potatoes, Russet, Flesh and Skin, Baked"
-                  :category       "Vegetables and Vegetable Products"
-                  :quantity       1
-                  :quantity-units "medium"
-                  :nutrients      {"Energy (kcal)"   164.35
-                                   "Carbs (g)"       37.09
-                                   "Amount calories" 164.35
-                                   "Amount medium"   1}}}
+    {"calories" {:name           "Potatoes, Russet, Flesh and Skin, Baked"
+                 :category       "Vegetables and Vegetable Products"
+                 :quantity       164.35
+                 :quantity-units "calories"
+                 :nutrients      {"Energy (kcal)"   164.35
+                                  "Carbs (g)"       37.09
+                                  "Amount calories" 164.35
+                                  "Amount medium"   1}}
+     "medium"   {:name           "Potatoes, Russet, Flesh and Skin, Baked"
+                 :category       "Vegetables and Vegetable Products"
+                 :quantity       1
+                 :quantity-units "medium"
+                 :nutrients      {"Energy (kcal)"   164.35
+                                  "Carbs (g)"       37.09
+                                  "Amount calories" 164.35
+                                  "Amount medium"   1}}}
    "oatmeal"   {"calories" {:name           "oatmeal"
                             :category       "Breakfast Cereals"
                             :quantity       100

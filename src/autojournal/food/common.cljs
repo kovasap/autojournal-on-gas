@@ -38,6 +38,20 @@
    "medium" []
    "large" []})
 
+(def units->cups
+  {"cup" 1
+   "tbsp" (/ 1 16)
+   "tsp" (/ 1 48)
+   "fl oz" (/ 1 8)})
+
+(defn convert-units
+  [quantity unit new-unit]
+  (let [in-cups (if (= unit "cup")
+                  quantity
+                  (* quantity (get units->cups unit)))]
+    (/ in-cups (get units->cups new-unit))))
+  
+
 (defn singular-fixed
   [s]
   (cond
