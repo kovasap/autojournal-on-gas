@@ -1,6 +1,7 @@
 (ns autojournal.drive
   (:require [autojournal.env-switching :refer [env-switch]]
             [autojournal.sheets :refer [sheet-to-maps]]
+            [autojournal.testing-utils :refer [assert=]]
             [clojure.string :refer [ends-with?]]))
 
 (defn -get-file
@@ -71,3 +72,34 @@
     {:node #(prn (str "get-files called with " filename))
      :app-script #(-get-file-contents
                     (-get-file filename))}))
+
+(defn stringify-keys
+  [m]
+  (into {} (for [[k v] m]
+             [(name k) v])))
+
+(defn floatify-vals
+  [m]
+  (into {} (for [[k v] m
+                 :let [floatv (js/parseFloat v)]]
+             [k (if (or (float? v)
+                        (js/Number.isNaN floatv)
+                        ; parseFloat will take any leading numbers and make
+                        ; them a float, so we explicitly make sure no letters
+                        ; are in the string
+                        (not (nil? (re-matches #".*[a-zA-Z]+.*" v))))
+                    v
+                    floatv)])))
+
+(assert=
+  {"a" "1.0 g"
+   "b" 0
+   "c" 1}
+  (floatify-vals {"a" "1.0 g"
+                  "b" "0.00"
+                  "c" 1.00}))
+
+(defn get-raw-rows
+  [filename]
+  (map (comp floatify-vals stringify-keys)
+       (first (get-files filename))))

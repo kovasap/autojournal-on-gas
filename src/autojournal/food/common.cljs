@@ -1,5 +1,10 @@
 (ns autojournal.food.common
-  (:require [inflections.core :refer [singular]]))
+  (:require [inflections.core :refer [singular]]
+            [clojure.string
+             :as
+             st
+             :refer
+             [includes? starts-with? trim split lower-case]]))
 
 
 ; TODO Make this reference a sheet name
@@ -50,7 +55,41 @@
                   quantity
                   (* quantity (get units->cups unit)))]
     (/ in-cups (get units->cups new-unit))))
-  
+
+(defn get-amount-fields
+  {:malli/schema [:=>
+                  [:cat [:map-of :string :string]]
+                  [:cat :string :double]]}
+  [row]
+  (for [[k quantity] row
+        :when (and (not (nil? k)) (starts-with? k "Amount "))
+        :let [unit (st/replace k #"Amount " "")]]
+    [unit quantity]))
+
+(defn simplify-db-unit
+  [units]
+  (if (nil? units)
+    "unit"
+    ((comp
+      #(if ((set (get units-map "unit")) %)
+         "unit" %)
+      trim
+      #(get {"tablespoon" "tbsp"
+             "teaspoon" "tsp"
+             "fluid ounce" "fl oz"
+             "cal" "calories"
+             "cups" "cup"}
+            % %)
+      #(if (includes? % ",") (first (split % #",")) %)
+      #(if (includes? % "-") (first (split % #"-")) %)
+      #(cond
+         (includes? % "small") "small"
+         (includes? % "medium") "medium"
+         (includes? % "large") "large"
+         :else %)
+      lower-case)
+     units)))
+
 
 (defn singular-fixed
   [s]

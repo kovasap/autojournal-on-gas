@@ -105,17 +105,21 @@
 (defn maps-to-sheet
   "We assume that the maps are not nested, and that the keys are strings."
   [maps sheet-name]
-  (let [sheet (.. js/SpreadsheetApp
-                  (create sheet-name)
-                  (getActiveSheet))
-        headers (sort-by #(cond
-                            (ends-with? % ")") (str "z" %)
-                            (= % "Food Name") (str "AA" %)
-                            :else %)
-                         (all-keys maps))]
-    (append-row sheet headers)
-    (doseq [m maps]
-      (append-row sheet (into [] (for [h headers] (get m h)))))))
+  (env-switch
+    {:node       #(prn maps sheet-name)
+     :app-script (fn []
+                   (let [sheet   (.. js/SpreadsheetApp
+                                     (create sheet-name)
+                                     (getActiveSheet))
+                         headers (sort-by #(cond (ends-with? % ")") (str "z" %)
+                                                 (= % "Food Name")  (str "AA"
+                                                                         %)
+                                                 :else              %)
+                                          (all-keys maps))]
+                     (append-row sheet headers)
+                     (doseq [m maps]
+                       (append-row sheet
+                                   (into [] (for [h headers] (get m h)))))))}))
 
 
 (defn sheet-to-maps
