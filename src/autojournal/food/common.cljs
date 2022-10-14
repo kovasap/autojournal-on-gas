@@ -59,12 +59,12 @@
 (defn get-amount-fields
   {:malli/schema [:=>
                   [:cat [:map-of :string :string]]
-                  [:cat :string :double]]}
+                  [:cat :string :string :double]]}
   [row]
   (for [[k quantity] row
         :when (and (not (nil? k)) (starts-with? k "Amount "))
         :let [unit (st/replace k #"Amount " "")]]
-    [unit quantity]))
+    [k unit quantity]))
 
 (defn simplify-db-unit
   [units]

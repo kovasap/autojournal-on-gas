@@ -18,13 +18,13 @@
 (defn raw-db-row->foods
   [row]
   (for [food-name (conj (split (get row "Aliases") #"\n") (get row "Food Name"))
-        [unit quantity] (get-amount-fields row)
+        [_ unit quantity] (get-amount-fields row)
         :let [db-name (get row "Food Name")]
         :when (not (= "" food-name))]
     {:alias food-name
      :name db-name
      :category (get row "Category")
-     :quantity quantity
+     :quantity (if (= "" quantity) 0 quantity)
      :quantity-units unit
      :nutrients (apply dissoc row
                        (concat ["Food Name" "Aliases" "Category"]
@@ -63,6 +63,7 @@
          "Energy (kcal)" 164.35,
          "Carbs (g)" 37.09,
          "Aliases" "potatoes",
+         "Amount cup" ""
          "Amount calories" 164.35
          "Amount medium" 1}
         {"Category" "Breakfast Cereals",
@@ -90,158 +91,123 @@
 
 (assert=
   test-food-db
-  {"potatoes"  {"calories" {:alias "potatoes"
+  {"potatoes"  {"cup"      {:alias "potatoes"
+                            :name "Potatoes, Russet, Flesh and Skin, Baked"
+                            :category "Vegetables and Vegetable Products"
+                            :quantity 0
+                            :quantity-units "cup"
+                            :nutrients {"Energy (kcal)" 164.35
+                                        "Carbs (g)"     37.09}}
+                "calories" {:alias "potatoes"
                             :name "Potatoes, Russet, Flesh and Skin, Baked"
                             :category "Vegetables and Vegetable Products"
                             :quantity 164.35
                             :quantity-units "calories"
-                            :nutrients {"Energy (kcal)"   164.35
-                                        "Carbs (g)"       37.09
-                                        "Amount calories" 164.35
-                                        "Amount medium"   1}}
+                            :nutrients {"Energy (kcal)" 164.35
+                                        "Carbs (g)"     37.09}}
                 "medium"   {:alias "potatoes"
                             :name "Potatoes, Russet, Flesh and Skin, Baked"
                             :category "Vegetables and Vegetable Products"
                             :quantity 1
                             :quantity-units "medium"
-                            :nutrients {"Energy (kcal)"   164.35
-                                        "Carbs (g)"       37.09
-                                        "Amount calories" 164.35
-                                        "Amount medium"   1}}}
+                            :nutrients {"Energy (kcal)" 164.35
+                                        "Carbs (g)"     37.09}}}
    "Potatoes, Russet, Flesh and Skin, Baked"
-     {"calories" {:alias          "Potatoes, Russet, Flesh and Skin, Baked"
+     {"cup"      {:alias          "Potatoes, Russet, Flesh and Skin, Baked"
+                  :name           "Potatoes, Russet, Flesh and Skin, Baked"
+                  :category       "Vegetables and Vegetable Products"
+                  :quantity       0
+                  :quantity-units "cup"
+                  :nutrients      {"Energy (kcal)" 164.35 "Carbs (g)" 37.09}}
+      "calories" {:alias          "Potatoes, Russet, Flesh and Skin, Baked"
                   :name           "Potatoes, Russet, Flesh and Skin, Baked"
                   :category       "Vegetables and Vegetable Products"
                   :quantity       164.35
                   :quantity-units "calories"
-                  :nutrients      {"Energy (kcal)"   164.35
-                                   "Carbs (g)"       37.09
-                                   "Amount calories" 164.35
-                                   "Amount medium"   1}}
+                  :nutrients      {"Energy (kcal)" 164.35 "Carbs (g)" 37.09}}
       "medium"   {:alias          "Potatoes, Russet, Flesh and Skin, Baked"
                   :name           "Potatoes, Russet, Flesh and Skin, Baked"
                   :category       "Vegetables and Vegetable Products"
                   :quantity       1
                   :quantity-units "medium"
-                  :nutrients      {"Energy (kcal)"   164.35
-                                   "Carbs (g)"       37.09
-                                   "Amount calories" 164.35
-                                   "Amount medium"   1}}}
+                  :nutrients      {"Energy (kcal)" 164.35 "Carbs (g)" 37.09}}}
    "oatmeal"   {"calories" {:alias          "oatmeal"
                             :name           "Oatmeal, Regular or Quick, Dry"
                             :category       "Breakfast Cereals"
                             :quantity       100
                             :quantity-units "calories"
-                            :nutrients      {"Energy (kcal)"   100
-                                             "Carbs (g)"       50
-                                             "Amount calories" 100
-                                             "Amount g"        100
-                                             "Amount cup"      50}}
+                            :nutrients      {"Energy (kcal)" 100
+                                             "Carbs (g)"     50}}
                 "g"        {:alias          "oatmeal"
                             :name           "Oatmeal, Regular or Quick, Dry"
                             :category       "Breakfast Cereals"
                             :quantity       100
                             :quantity-units "g"
-                            :nutrients      {"Energy (kcal)"   100
-                                             "Carbs (g)"       50
-                                             "Amount calories" 100
-                                             "Amount g"        100
-                                             "Amount cup"      50}}
+                            :nutrients      {"Energy (kcal)" 100
+                                             "Carbs (g)"     50}}
                 "cup"      {:alias          "oatmeal"
                             :name           "Oatmeal, Regular or Quick, Dry"
                             :category       "Breakfast Cereals"
                             :quantity       50
                             :quantity-units "cup"
-                            :nutrients      {"Energy (kcal)"   100
-                                             "Carbs (g)"       50
-                                             "Amount calories" 100
-                                             "Amount g"        100
-                                             "Amount cup"      50}}}
+                            :nutrients      {"Energy (kcal)" 100
+                                             "Carbs (g)"     50}}}
    "Oatmeal, Regular or Quick, Dry"
      {"calories" {:alias          "Oatmeal, Regular or Quick, Dry"
                   :name           "Oatmeal, Regular or Quick, Dry"
                   :category       "Breakfast Cereals"
                   :quantity       100
                   :quantity-units "calories"
-                  :nutrients      {"Energy (kcal)"   100
-                                   "Carbs (g)"       50
-                                   "Amount calories" 100
-                                   "Amount g"        100
-                                   "Amount cup"      50}}
+                  :nutrients      {"Energy (kcal)" 100 "Carbs (g)" 50}}
       "g"        {:alias          "Oatmeal, Regular or Quick, Dry"
                   :name           "Oatmeal, Regular or Quick, Dry"
                   :category       "Breakfast Cereals"
                   :quantity       100
                   :quantity-units "g"
-                  :nutrients      {"Energy (kcal)"   100
-                                   "Carbs (g)"       50
-                                   "Amount calories" 100
-                                   "Amount g"        100
-                                   "Amount cup"      50}}
+                  :nutrients      {"Energy (kcal)" 100 "Carbs (g)" 50}}
       "cup"      {:alias          "Oatmeal, Regular or Quick, Dry"
                   :name           "Oatmeal, Regular or Quick, Dry"
                   :category       "Breakfast Cereals"
                   :quantity       50
                   :quantity-units "cup"
-                  :nutrients      {"Energy (kcal)"   100
-                                   "Carbs (g)"       50
-                                   "Amount calories" 100
-                                   "Amount g"        100
-                                   "Amount cup"      50}}}
+                  :nutrients      {"Energy (kcal)" 100 "Carbs (g)" 50}}}
    "tap water" {"calories" {:alias          "tap water"
                             :name           "Tap Water"
                             :category       "Beverages"
                             :quantity       0
                             :quantity-units "calories"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        1000}}
+                            :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}
                 "g"        {:alias          "tap water"
                             :name           "Tap Water"
                             :category       "Beverages"
                             :quantity       1000
                             :quantity-units "g"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        1000}}}
+                            :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}}
    "Tap Water" {"calories" {:alias          "Tap Water"
                             :name           "Tap Water"
                             :category       "Beverages"
                             :quantity       0
                             :quantity-units "calories"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        1000}}
+                            :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}
                 "g"        {:alias          "Tap Water"
                             :name           "Tap Water"
                             :category       "Beverages"
                             :quantity       1000
                             :quantity-units "g"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        1000}}}
+                            :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}}
    "Sprite"    {"calories" {:alias          "Sprite"
                             :name           "Sprite"
                             :category       "Beverages"
                             :quantity       0
                             :quantity-units "calories"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        100}}
+                            :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}
                 "g"        {:alias          "Sprite"
                             :name           "Sprite"
                             :category       "Beverages"
                             :quantity       100
                             :quantity-units "g"
-                            :nutrients      {"Energy (kcal)"   0
-                                             "Carbs (g)"       0
-                                             "Amount calories" 0
-                                             "Amount g"        100}}}})
+                            :nutrients      {"Energy (kcal)" 0
+                                             "Carbs (g)"     0}}}})
 
 
 (defn clean-phrase
@@ -338,12 +304,14 @@
   (5 apples / 1 DB apple) * 100mg DB thing = 500 mg thing in logged food
   "
   [logged-food db-food]
-  (let [factor (/ (:quantity logged-food) (:quantity db-food))]
-    (assoc
-      logged-food
+  (let [factor (if (= 0 (:quantity db-food))
+                 0
+                 (/ (:quantity logged-food) (:quantity db-food)))]
+    (assoc logged-food
       :db-name   (:name db-food)
       :category  (:category db-food)
-      :nutrients (into {} (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
+      :nutrients (into {}
+                       (for [[k v] (:nutrients db-food)] [k (* factor v)])))))
 
 
 (defn add-db-data-to-foods
@@ -354,7 +322,9 @@
                           (get (most-closely-matching-food (:name food)
                                                            food-db))
                           (get (simplify-db-unit (:quantity-units food))))]]
-    (if (nil? db-food) food (get-scaled-db-food food db-food))))
+    (if (nil? db-food)
+      food
+      (get-scaled-db-food food db-food))))
 
 (assert= (add-db-data-to-foods
            [{:name "potato" :quantity-units "medium" :quantity 0.5}]
@@ -364,11 +334,17 @@
             :quantity       0.5
             :db-name        "Potatoes, Russet, Flesh and Skin, Baked"
             :category       "Vegetables and Vegetable Products"
-            :nutrients      {"Energy (kcal)"   82.175
-                             "Carbs (g)"       18.545
-                             "Amount calories" 82.175
-                             "Amount medium"   0.5}}))
-         
+            :nutrients      {"Energy (kcal)" 82.175 "Carbs (g)" 18.545}}))
+
+(assert=
+  (add-db-data-to-foods [{:name "potato" :quantity-units "cups" :quantity 0.5}]
+                        test-food-db)
+  '({:name           "potato"
+     :quantity-units "cups"
+     :quantity       0.5
+     :db-name        "Potatoes, Russet, Flesh and Skin, Baked"
+     :category       "Vegetables and Vegetable Products"
+     :nutrients      {"Energy (kcal)" 0 "Carbs (g)" 0}}))
 
 (defn add-db-data-to-meals
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]

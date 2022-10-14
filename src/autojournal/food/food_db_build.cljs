@@ -65,7 +65,7 @@
 
 (defn get-reference-unit
   [row]
-  (first (filter #(contains? units->cups (first %)) (get-amount-fields row))))
+  (first (filter #(contains? units->cups (second %)) (get-amount-fields row))))
 
 (defn populate-units
   {:malli/schema [:=>

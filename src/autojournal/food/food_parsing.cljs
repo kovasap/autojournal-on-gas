@@ -57,18 +57,16 @@
 (defn extract-units
   "Returns [amount units food]."
   [food-str]
-  (let [matches
-        (remove empty?
-                (reduce union
-                        (for [[std-unit raw-units] units-map]
-                          (set (for [raw-unit (conj raw-units std-unit)]
-                                 (replace {raw-unit std-unit}
-                                          (rest (re-matches (-food-regex raw-unit)
-                                                            food-str))))))))]
-    (cond
-      (< 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
-      (= 0 (count matches)) (extract-unitless-quantity food-str)
-      :else (first matches))))
+  (let [matches (remove empty?
+                  (reduce union
+                    (for [[std-unit raw-units] units-map]
+                      (set (for [raw-unit (conj raw-units std-unit)]
+                             (replace {raw-unit std-unit}
+                                      (rest (re-matches (-food-regex raw-unit)
+                                                        food-str))))))))]
+    (cond (< 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
+          (= 0 (count matches)) (extract-unitless-quantity food-str)
+          :else                 (first matches))))
 
 (assert=
   '("40 " "calories" "roasted seaweed")

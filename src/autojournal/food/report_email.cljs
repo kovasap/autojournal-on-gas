@@ -2,15 +2,8 @@
   (:require [autojournal.sheets :as sheets]
             [autojournal.food.common :refer [NutrientName Food Meal DAYS-TO-SUMMARIZE
                                              nutrient-targets-sheet-id]]
-            [autojournal.gmail :as gmail]
-            [autojournal.drive :as drive]
             [autojournal.testing-utils :refer [node-only assert=]]
-            [inflections.core :refer [singular]]
-            [cljs.pprint :refer [pprint]]
-            [clojure.set :refer [union]]
-            [clojure.string :as st
-             :refer [split split-lines lower-case join
-                     starts-with? includes? trim]]))
+            [cljs.pprint :refer [pprint]]))
 
 
 
