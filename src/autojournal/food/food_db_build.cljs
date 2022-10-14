@@ -12,7 +12,7 @@
             [autojournal.drive :refer [floatify-vals get-raw-rows]]
             [autojournal.testing-utils :refer [assert=]]
             [clojure.set :refer [union]]
-            [clojure.string :as st :refer [split join starts-with?]]))
+            [clojure.string :as st :refer [split join starts-with? trim]]))
 
 ; -------------------- Food Database Construction --------------------------
 
@@ -65,7 +65,9 @@
 
 (defn get-reference-unit
   [row]
-  (first (filter #(contains? units->cups (second %)) (get-amount-fields row))))
+  (first (for [[_ unit quantity] (get-amount-fields row)
+               :when (contains? units->cups unit)]
+           [unit quantity])))
 
 (defn populate-units
   {:malli/schema [:=>
@@ -172,7 +174,10 @@
                             (union (set (split (get row "Aliases") #"\n"))
                                    (set (split (get existing-row "Aliases")
                                                #"\n"))))
-            "Category" (get existing-row "Category"))
+            "Category" (let [existing-cat (get existing-row "Category")]
+                         (if (= "" (trim existing-cat))
+                           (get row "Category")
+                           existing-cat)))
           row)))))
 
 (defn ^:export make-new-food-db-sheet
