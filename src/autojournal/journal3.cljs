@@ -72,7 +72,7 @@
   [days-to-summarize]
   (let [entries (get-recent-entries days-to-summarize)]
     [:div
-     [:h1 "Last " days-to-summarize " Mood Summary"]
+     [:h1 "Last " days-to-summarize " Day Mood Summary"]
      (make-table ["Category"
                   "Activity"
                   "Valence"
@@ -80,15 +80,16 @@
                   "Mood"
                   "Mood Details"
                   "Bathroom"]
-                 (sort-by :datetime
-                          (for [entry entries]
-                            [(:category entry)
-                             (:activity entry)
-                             (:valence entry)
-                             (:energy entry)
-                             (:mood entry)
-                             (:mood-details entry)
-                             (:bathroom entry)])))]))
+                 (reverse
+                   (sort-by :datetime
+                            (for [entry entries]
+                              [(:category entry)
+                               (:activity entry)
+                               (:valence entry)
+                               (:energy entry)
+                               (:mood entry)
+                               (:mood-details entry)
+                               (:bathroom entry)]))))]))
 
 (defn update-calendar!
   [days]
