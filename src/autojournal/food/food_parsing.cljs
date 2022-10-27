@@ -119,7 +119,6 @@
 (assert= {:name "tea" :quantity 0 :quantity-units "calories"}
          (parse-food "0 cal tea"))
 
-
 (defn parse-foods
   {:malli/schema [:=> [:cat :string] [:sequential Food]]}
   [foods]

@@ -9,21 +9,20 @@
             [autojournal.food.food-db-build :refer [make-new-food-db-sheet]]
             [autojournal.food.food-parsing :refer [row->meal meal->event]]
             [autojournal.food.report-email :refer [build-report-email]]
-            [autojournal.food.common :refer [DAYS-TO-SUMMARIZE food-sheet-name]]))
+            [autojournal.food.common :refer [food-sheet-name]]))
 
 ; --------------- Main -----------------------------------------
 
-(defn send-report
-  []
+(defn report
+  [days-to-summarize]
   (let [food-db (get-food-db)
-        all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        email-body (if (= 0 (count all-meals))
-                     (str "No foods in last " DAYS-TO-SUMMARIZE
-                          ", did you sync momentodb?")
-                     (-> (recent-items all-meals DAYS-TO-SUMMARIZE)
-                         (add-db-data-to-meals food-db)
-                         (build-report-email)))]
-    (gmail/send-self-mail "Daily Report" email-body)))
+        all-meals (map row->meal (first (drive/get-files food-sheet-name)))]
+    (if (= 0 (count all-meals))
+      (str "No foods in last " days-to-summarize
+           ", did you sync momentodb?")
+      (-> (recent-items all-meals days-to-summarize)
+          (add-db-data-to-meals food-db)
+          (build-report-email days-to-summarize)))))
 
 
 (defn update-calendar!

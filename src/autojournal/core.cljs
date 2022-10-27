@@ -3,11 +3,13 @@
   ; goes to do the schema checking in the refresh function.
   (:require [autojournal.sheets :as sheets]
             [autojournal.calendar :as calendar]
+            [autojournal.gmail :as gmail]
+            [autojournal.html-utils :refer [Hiccup]]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
-            [autojournal.food.main :as food-summary]
+            [autojournal.food.main :as food]
             [autojournal.drive :as drive]
             [autojournal.mood :as mood]
-            [autojournal.journal :as journal]
+            [autojournal.journal3 :as journal3]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [cljs-time.core :refer [date-time today minus days]]
@@ -18,8 +20,8 @@
 
 (defn ^:export update-lifelog []
   (mood/update-calendar! 5)
-  (journal/update-calendar! 5)
-  (food-summary/update-calendar! 5)
+  (journal3/update-calendar! 5)
+  (food/update-calendar! 5)
   #_(let [today (today)
           yesterday (minus today (days 1))
           events (location/get-events
@@ -28,8 +30,16 @@
       (calendar/add-event! (first events))
       (sheets/update-events! events)))
 
-(defn ^:export summarize-food []
-  (food-summary/send-report))
+
+(defn ^:export send-report-email []
+  {:malli/schema [:=> [:cat ] Hiccup]}
+  (gmail/send-self-mail "Daily Report"
+    [:html
+     [:head]
+     [:body
+      (journal3/report 1)
+      (food/report 1)]]))
+
 
 (defn main [])
 

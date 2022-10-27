@@ -1,37 +1,11 @@
 (ns autojournal.food.report-email
   (:require [autojournal.sheets :as sheets]
+            [autojournal.html-utils :refer [Hiccup make-table]]
             [autojournal.food.common :refer [NutrientName Food Meal DAYS-TO-SUMMARIZE
                                              nutrient-targets-sheet-id]]
             [autojournal.testing-utils :refer [node-only assert=]]
             [cljs.pprint :refer [pprint]]))
 
-
-
-(def Hiccup
-  [:schema
-   {:registry {"hiccup" [:orn
-                         [:node [:catn
-                                 [:name keyword?]
-                                 [:props [:? [:map-of keyword? any?]]]
-                                 [:children [:* [:schema [:ref "hiccup"]]]]]]
-                         [:primitive [:orn
-                                      [:nil nil?]
-                                      [:boolean boolean?]
-                                      [:number number?]
-                                      [:text string?]]]]}}
-   "hiccup"])
-
-(defn make-table
-  {:malli/schema [:=> [:cat [:sequential :string]
-                            [:sequential [:sequential :any]]]
-                   Hiccup]}
-  [headers rows]
-  [:table
-   [:tbody
-    ; https://www.w3schools.com/html/html_table_headers.asp
-    (into [:tr] (for [h headers] [:th h]))
-    (for [row rows]
-      (into [:tr] (for [i row] [:td i])))]])
 
 (defn round [n]
   (/ (Math/round (* 1000 (+ n (. js/Number -EPSILON)))) 1000))
@@ -43,7 +17,6 @@
                   [:map-of [NutrientName :double]]]}
   []
   (first (sheets/transposed-sheet-to-maps nutrient-targets-sheet-id)))
-
 
 
 (defn sum-food-nutrients
@@ -143,20 +116,18 @@
 
    
 (defn build-report-email
-  {:malli/schema [:=> [:cat [:sequential Meal]]
+  {:malli/schema [:=> [:cat [:sequential Meal :int]]
                   Hiccup]}
-  [meals]
+  [meals days-to-summarize]
   (let [all-foods (reduce concat (map :foods meals))]
-    [:html
-     [:head]
-     [:body
-      [:h1 "Last " DAYS-TO-SUMMARIZE " day food summary"]
+    [:div
+      [:h1 "Last " days-to-summarize " day food summary"]
       (food-category-calorie-breakdown all-foods)
-      [:br]
-      (nutrient-target-performance all-foods)
       [:br]
       (foods-by-nutrient all-foods "Energy (kcal)")
       [:br]
       (foods-by-volume all-foods)
       [:br]
-      (debug-meals meals)]]))
+      (nutrient-target-performance all-foods)
+      [:br]
+      (debug-meals meals)]))

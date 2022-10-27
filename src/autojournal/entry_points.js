@@ -2,8 +2,8 @@ function make_new_food_db_sheet() {
   autojournal.food.food_db_build.make_new_food_db_sheet();
 }
 
-function summarize_food() {
-  autojournal.core.summarize_food();
+function sent_report_email() {
+  autojournal.core.sent_report_email();
 }
 
 function update_lifelog() {
