@@ -3,6 +3,7 @@
   ; goes to do the schema checking in the refresh function.
   (:require [autojournal.sheets :as sheets]
             [autojournal.calendar :as calendar]
+            [autojournal.sleep :as sleep]
             [autojournal.gmail :as gmail]
             [autojournal.html-utils :refer [Hiccup]]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
@@ -19,26 +20,29 @@
             [malli.dev.pretty :as pretty]))
 
 (defn ^:export update-lifelog []
-  (mood/update-calendar! 5)
-  (journal3/update-calendar! 5)
-  (food/update-calendar! 5)
-  #_(let [today (today)
-          yesterday (minus today (days 1))
-          events (location/get-events
-                   (to-long yesterday)
-                   (to-long today))]
-      (calendar/add-event! (first events))
-      (sheets/update-events! events)))
+  (let [days-to-update 5]
+    (mood/update-calendar! days-to-update)
+    (journal3/update-calendar! days-to-update)
+    (food/update-calendar! days-to-update)
+    #_(let [today (today)
+            yesterday (minus today (days 1))
+            events (location/get-events
+                     (to-long yesterday)
+                     (to-long today))]
+        (calendar/add-event! (first events))
+        (sheets/update-events! events))))
 
 
 (defn ^:export send-report-email []
   {:malli/schema [:=> [:cat ] Hiccup]}
-  (gmail/send-self-mail "Daily Report"
-    [:html
-     [:head]
-     [:body
-      (journal3/report 1)
-      (food/report 1)]]))
+  (let [days-to-summarize 1]
+    (gmail/send-self-mail "Daily Report"
+      [:html
+       [:head]
+       [:body
+        (journal3/report days-to-summarize)
+        (sleep/report days-to-summarize)
+        (food/report days-to-summarize)]])))
 
 
 (defn main [])

@@ -80,16 +80,15 @@
                   "Mood"
                   "Mood Details"
                   "Bathroom"]
-                 (reverse
-                   (sort-by :datetime
-                            (for [entry entries]
-                              [(:category entry)
-                               (:activity entry)
-                               (:valence entry)
-                               (:energy entry)
-                               (:mood entry)
-                               (:mood-details entry)
-                               (:bathroom entry)]))))]))
+                 (reverse (sort-by :datetime
+                                   (for [entry entries]
+                                     [(:category entry)
+                                      (:activity entry)
+                                      (:valence entry)
+                                      (:energy entry)
+                                      (:mood entry)
+                                      (:mood-details entry)
+                                      (:bathroom entry)]))))]))
 
 (defn update-calendar!
   [days]
