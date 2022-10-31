@@ -33,16 +33,16 @@
         (sheets/update-events! events))))
 
 
-(defn ^:export send-report-email []
-  {:malli/schema [:=> [:cat ] Hiccup]}
-  (let [days-to-summarize 1]
-    (gmail/send-self-mail "Daily Report"
-      [:html
-       [:head]
-       [:body
-        (journal3/report days-to-summarize)
-        (sleep/report days-to-summarize)
-        (food/report days-to-summarize)]])))
+(defn ^:export send-report-email
+  {:malli/schema [:=> [:cat :int] Hiccup]}
+  [days-to-summarize]
+  (gmail/send-self-mail "Daily Report"
+    [:html
+     [:head]
+     [:body
+      (journal3/report days-to-summarize)
+      (sleep/report days-to-summarize)
+      (food/report days-to-summarize)]]))
 
 
 (defn main [])
