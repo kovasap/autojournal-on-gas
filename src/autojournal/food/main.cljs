@@ -13,17 +13,19 @@
 
 ; --------------- Main -----------------------------------------
 
-(defn report
-  [days-to-summarize]
-  (let [food-db (get-food-db)
+(defn get-meals
+  [days]
+  (let [food-db   (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))]
     (if (= 0 (count all-meals))
-      (str "No foods in last " days-to-summarize
-           ", did you sync momentodb?")
-      (-> (recent-items all-meals days-to-summarize)
-          (add-db-data-to-meals food-db)
-          (build-report-email days-to-summarize)))))
+      (str "No foods in last " days ", did you sync momentodb?")
+      (add-db-data-to-meals (recent-items all-meals days)
+                            food-db))))
 
+
+(defn report
+  [days-to-summarize]
+  (build-report-email (get-meals days-to-summarize) days-to-summarize))
 
 (defn update-calendar!
   [days]
