@@ -2,7 +2,10 @@
   (:require [autojournal.journal5 :as journal5]
             [autojournal.food.main :as food]
             [clojure.string :as st]
-            [autojournal.food.common :refer [Meal]]))
+            [autojournal.food.common :refer [Meal]]
+            [cljs-time.core :refer [plus seconds]]
+            [cljs-time.coerce :refer [from-date]]
+            [cljs-time.format :refer [unparse formatters]]))
 
 
 (defn entries-by-meal
@@ -30,7 +33,10 @@
       [:div]
       (for [[meal entries] (entries-by-meal journal-entries meals)]
         [:div
-         [:div (:datetime meal)]
+         [:div (unparse (formatters :hour-minute)
+                        (from-date (:datetime meal)))]
+                        ; Time zone correction
+                        ; (plus (from-date (:datetime meal)) (seconds 25200)))]
          [:div (st/join ", " (map :name (:foods meal)))]
          [:br]
          (journal5/make-entry-table entries journal5/table-keys identity)

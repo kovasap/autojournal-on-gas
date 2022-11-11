@@ -137,7 +137,7 @@
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
-; The problem is that the timestamps in the momentodb table are local times
+; The problem is that the timestamps in the mementodb table are local times
 ; without a timezone label, so when we convert them to unix timestamp longs
 ; here they are not actually correct, since unix timestamps are UTC.
 (def pdt-offset (* 25200 1000))
