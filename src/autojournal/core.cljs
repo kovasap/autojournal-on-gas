@@ -24,9 +24,11 @@
 
 (defn ^:export write-report
   []
-  (let [cgm-data (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")]
-    (prn cgm-data)
-    (write-vega-page "vega.html" (plot-events cgm-data))))
+  (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
+        journal-data (journal5/get-events)]
+    (write-vega-page "vega.html"
+                     (plot-events (concat cgm-data journal-data)
+                                  ["glucose" "valence"]))))
 
 (defn ^:export update-lifelog []
   (let [days-to-update 5]

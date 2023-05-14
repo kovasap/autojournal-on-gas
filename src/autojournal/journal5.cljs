@@ -45,6 +45,9 @@
 ; here they are not actually correct, since unix timestamps are UTC.
 (def pdt-offset (* 25200 1000))
 
+
+(def valence-to-number {"Meh" 0 "OK" 1 "Good" 2 "Great" 3})
+
 (defn entry->event
   {:malli/schema [:=> [:cat Entry] Event]}
   [entry]
@@ -52,6 +55,7 @@
    :end         (+ pdt-offset
                    (to-long (plus (from-date (:datetime entry)) (minutes 30))))
    :activity    (:activity entry)
+   :valence     (get valence-to-number (:valence entry) -1)
    :summary     (str (:valence entry) ": " (:activity entry))
    :description (with-out-str (pprint (dissoc (:raw-data entry)
                                               :Timestamp
@@ -63,6 +67,11 @@
   [days]
   (let [all-entrys (map row->entry (first (drive/get-files sheet-name)))]
     (recent-items all-entrys days)))
+
+
+(defn get-events
+  []
+  (map entry->event (map row->entry (first (drive/get-files sheet-name)))))
 
 
 (defn make-entry-table

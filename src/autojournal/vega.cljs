@@ -30,13 +30,29 @@
 
 (defn plot-events
   "Returns vega-data."
-  [events]
+  [events fields-to-plot]
   {:$schema     "https://vega.github.io/schema/vega-lite/v5.json"
    :description "Chart of events."
    :data        {:values events}
-   :mark        "line"
-   :encoding    {:x {:field "start" :type "temporal"}
-                 :y {:field "glucose" :type "quantitative"}}})
+   ; Makes a stack of plots, one for each field.
+   ; See https://stackoverflow.com/a/62460026 for scrolling
+   ; example/explanation.
+   :vconcat     (into
+                  []
+                  (for [field fields-to-plot]
+                    {:mark      "line"
+                     :width     1000
+                     :height    400
+                     :encoding  {:x       {:field "start" :type "temporal"}
+                                 :y       {:field field :type "quantitative"}
+                                 :tooltip {:field field :type "quantitative"}}
+                     :selection {:x_scroll {:type      "interval"
+                                            :bind      "scales"
+                                            :encodings ["x"]}}}))
+   ; Lets us scroll on the multiple plots with the x axis moving together and x
+   ; independently.
+   :resolve     {:scale {:x "shared" :y "independent"}}})
+      
 
 (defn vega-page
   "See https://vega.github.io/vega-lite/usage/embed.html"
