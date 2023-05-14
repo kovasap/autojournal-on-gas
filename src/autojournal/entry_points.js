@@ -13,3 +13,7 @@ function send_weekly_report_email() {
 function update_lifelog() {
   autojournal.core.update_lifelog();
 }
+
+function write_report() {
+  autojournal.core.write_report();
+}

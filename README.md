@@ -16,6 +16,8 @@ See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-scrip
   1. Set up a `clasp` project as instructed
   1. If a project already exists, just `clasp login` and `clasp clone`.
 
+Go to project at https://script.google.com/home/my to run.
+
 ## Deployment 
 
 Compile your ClojureScript and push it to your Apps Script project with this

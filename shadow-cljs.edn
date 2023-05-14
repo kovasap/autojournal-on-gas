@@ -1,5 +1,6 @@
 {:source-paths ["src"]
  :dependencies [[metosin/malli "0.8.4"]
+                ; [metasoarous/oz "1.6.0-alpha36"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
                 [hiccups "0.3.0"]
                 [com.github.jpmonettas/flow-storm-inst "RELEASE"]

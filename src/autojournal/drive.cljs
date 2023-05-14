@@ -66,6 +66,10 @@
        
   
 (defn get-files
+  "Gets data for all files with the given filename.
+
+  Returns a list of data with an element for each file.  If there is only one
+  file, make sure to call `first` or iterate to get your data!."
   [filename]
   (prn (str "Getting " filename))
   (env-switch
@@ -103,3 +107,9 @@
   [filename]
   (map (comp floatify-vals stringify-keys)
        (first (get-files filename))))
+
+(defn write-file
+  [filename content]
+  (env-switch
+    {:node #(prn (str "write-file called with " filename "\n" content))
+     :app-script #(.. js/DriveApp (createFile filename content))}))
