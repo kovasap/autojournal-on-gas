@@ -15,7 +15,7 @@
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [autojournal.continuous-glucose-monitoring :as cgm]
-            [autojournal.vega :refer [plot-events write-vega-page]]
+            [autojournal.vega :refer [make-all-event-plots write-vega-page]]
             [cljs-time.core :refer [date-time today minus days]]
             [malli.core :as m]
             [cljs-time.coerce :refer [to-long]]
@@ -27,8 +27,8 @@
   (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
         journal-data (journal5/get-events)]
     (write-vega-page "vega.html"
-                     (plot-events (concat cgm-data journal-data)
-                                  ["glucose" "valence"]))))
+                     (make-all-event-plots (concat cgm-data journal-data)
+                                           ["glucose" "valence"]))))
 
 (defn ^:export update-lifelog []
   (let [days-to-update 5]

@@ -1,5 +1,6 @@
 (ns autojournal.vega
-  (:require [autojournal.drive :refer [write-file]]))
+  (:require [autojournal.drive :refer [write-file]]
+            [clojure.string :as st]))
   ; (:require ["vega" :as vega]))
 
 ; This commented code requires an npm library, which is not accessible from
@@ -32,7 +33,7 @@
   "Returns vega-data."
   [events fields-to-plot]
   {:$schema     "https://vega.github.io/schema/vega-lite/v5.json"
-   :description "Chart of events."
+   :description "events"
    :data        {:values events}
    ; Makes a stack of plots, one for each field.
    ; See https://stackoverflow.com/a/62460026 for scrolling
@@ -52,11 +53,52 @@
    ; Lets us scroll on the multiple plots with the x axis moving together and x
    ; independently.
    :resolve     {:scale {:x "shared" :y "independent"}}})
-      
+
+
+(defn plot-events-hourly
+  [events fields-to-plot]
+  {:$schema     "https://vega.github.io/schema/vega-lite/v5.json"
+   :description "hourly_events"
+   :data        {:values events}
+   ; Makes a stack of plots, one for each field.
+   ; See https://stackoverflow.com/a/62460026 for scrolling
+   ; example/explanation.
+   :vconcat     (into
+                  []
+                  (for [field fields-to-plot]
+                    {:mark      "bar"
+                     :width     500
+                     :height    400
+                     :encoding  {:x       {:timeUnit "hours"
+                                           :field    "start"
+                                           :type     "temporal"}
+                                 :y       {:aggregate "mean" :field field}}
+                     :selection {:x_scroll {:type      "interval"
+                                            :bind      "scales"
+                                            :encodings ["x"]}}}))
+   ; Lets us scroll on the multiple plots with the x axis moving together and x
+   ; independently.
+   :resolve     {:scale {:x "shared" :y "independent"}}})
+  
+
+(defn make-all-event-plots
+  [events fields-to-plot]
+  [(plot-events events fields-to-plot)
+   (plot-events-hourly events fields-to-plot)])
+  
+       
+(defn vega-chart
+  [vega-data]
+  (let [chart-name (:description vega-data)]
+    ; 2 in stringify call means pretty print with spacing of 2
+    (str "<div id='"chart-name"'></div>
+     <script type='text/javascript'>
+      vegaEmbed('#"chart-name"', "(.stringify js/JSON (clj->js vega-data) 2)");
+     </script>")))
 
 (defn vega-page
   "See https://vega.github.io/vega-lite/usage/embed.html"
-  [vega-data]
+  [vega-charts]
   (str "<!DOCTYPE html>
 <html>
   <head>
@@ -66,41 +108,11 @@
     <script src='https://cdn.jsdelivr.net/npm/vega-embed@6.22.1'></script>
   </head>
   <body>
-    <div id='vis'></div>
-
-    <script type='text/javascript'>
-      var yourVlSpec = "
-      (.stringify js/JSON (clj->js vega-data) 2)  ; 2 means pretty print with spacing of 2
-      "
-      // Example:
-      // {
-      //   $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-      //   description: 'A simple bar chart with embedded data.',
-      //   data: {
-      //     values: [
-      //       {a: 'A', b: 28},
-      //       {a: 'B', b: 55},
-      //       {a: 'C', b: 43},
-      //       {a: 'D', b: 91},
-      //       {a: 'E', b: 81},
-      //       {a: 'F', b: 53},
-      //       {a: 'G', b: 19},
-      //       {a: 'H', b: 87},
-      //       {a: 'I', b: 52}
-      //     ]
-      //   },
-      //   mark: 'bar',
-      //   encoding: {
-      //     x: {field: 'a', type: 'ordinal'},
-      //     y: {field: 'b', type: 'quantitative'}
-      //   }
-      // };
-      vegaEmbed('#vis', yourVlSpec);
-    </script>
+  " (st/join "\n" vega-charts) "
   </body>
 </html>
   "))
 
 (defn write-vega-page
-  [filename vega-data]
-  (write-file filename (vega-page vega-data)))
+  [filename vega-datas]
+  (write-file filename (vega-page (map vega-chart vega-datas))))
