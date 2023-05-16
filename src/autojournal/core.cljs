@@ -26,9 +26,14 @@
   []
   (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
         journal-data (journal5/get-events)]
-    (write-vega-page "vega.html"
-                     (make-all-event-plots (concat cgm-data journal-data)
-                                           ["glucose" "valence"]))))
+    (write-vega-page
+      "vega.html"
+      (make-all-event-plots
+        (concat cgm-data journal-data)
+        {"glucose" {}
+         "valence" {:encoding {:type "ordinal"
+                               :sort ["Meh" "OK" "Good" "Great" "Amazing"]}
+                    :aggregation-encoding {:aggregate "count"}}}))))
 
 (defn ^:export update-lifelog []
   (let [days-to-update 5]

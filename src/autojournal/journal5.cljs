@@ -8,7 +8,7 @@
             [cljs-time.core :refer [plus minutes]]
             [cljs-time.coerce :refer [to-long from-date]]
             [cljs.pprint :refer [pprint]]
-            [clojure.string :refer [join trim split]]
+            [clojure.string :as st]
             [autojournal.schemas :refer [Event]]))
 
 (def sheet-name "Journal 5.0 Simple")
@@ -23,20 +23,22 @@
 
 (defn get-elements
   [header row]
-  (filter #(not (= "" %)) (map trim (split ((keyword header) row) #","))))
+  (filter #(not (= "" %))
+    (map st/trim (st/split ((keyword header) row) #","))))
 
 
 (defn row->entry
-  {:malli/schema [:=> [:cat [:map-of :keyword :string]] Entry]}
+  {:malli/schema [:=> [:cat [:map-of :keyword :string]] [:vec Entry]]}
   [row]
-  {:datetime   (:Timestamp row)
-   :raw-data   row
-   :valence    (:Valence row)
-   :energy     (:Energy/Motivation row)
-   :notes      (:Notes row)
-   :digestion  (:Digestion row)
-   :engagement ((keyword "Activity Engagement") row)
-   :activity   (:Activity row)})
+  (for [activity (st/split #"," (:Activity row))]
+    {:datetime   (:Timestamp row)
+     :raw-data   row
+     :valence    (:Valence row)
+     :energy     (:Energy/Motivation row)
+     :notes      (:Notes row)
+     :digestion  (:Digestion row)
+     :engagement ((keyword "Activity Engagement") row)
+     :activity   activity}))
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
@@ -53,25 +55,30 @@
   [entry]
   {:start       (+ pdt-offset (to-long (:datetime entry)))
    :end         (+ pdt-offset
-                   (to-long (plus (from-date (:datetime entry)) (minutes 30))))
+                   (to-long (plus (from-date (:datetime entry)) (minutes 60))))
    :activity    (:activity entry)
-   :valence     (get valence-to-number (:valence entry) -1)
+   :energy      (:energy entry)
+   :digestion   (:digestion entry)
+   :valence     (:valence entry)
+   #_(get valence-to-number (:valence entry) -1)
    :summary     (str (:valence entry) ": " (:activity entry))
-   :description (with-out-str (pprint (dissoc (:raw-data entry)
-                                              :Timestamp
-                                              :__id
-                                              :Activity)))})
+   :description (with-out-str
+                  (pprint
+                    (dissoc (:raw-data entry) :Timestamp :__id :Activity)))})
+
+(defn get-all-entries
+  []
+  (reduce concat (map row->entry (first (drive/get-files sheet-name)))))
 
 (defn get-recent-entries
   {:malli/schema [:=> [:cat :int] [:sequential Entry]]}
   [days]
-  (let [all-entrys (map row->entry (first (drive/get-files sheet-name)))]
-    (recent-items all-entrys days)))
+  (recent-items (get-all-entries) days))
 
 
 (defn get-events
   []
-  (map entry->event (map row->entry (first (drive/get-files sheet-name)))))
+  (map entry->event (get-all-entries)))
 
 
 (defn make-entry-table

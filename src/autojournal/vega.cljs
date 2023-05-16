@@ -40,13 +40,15 @@
    ; example/explanation.
    :vconcat     (into
                   []
-                  (for [field fields-to-plot]
-                    {:mark      "line"
+                  (for [[field {:keys [encoding]}] fields-to-plot]
+                    {:mark      {:type "line" :tooltip true}
                      :width     1000
                      :height    400
-                     :encoding  {:x       {:field "start" :type "temporal"}
-                                 :y       {:field field :type "quantitative"}
-                                 :tooltip {:field field :type "quantitative"}}
+                     :encoding  {:x {:field "start" :type "temporal"}
+                                 ; https://vega.github.io/vega-lite/examples/bar_gantt.html
+                                 ; :x2       {:field "end" :type "temporal"}
+                                 :y (merge {:field field :type "quantitative"}
+                                           encoding)}
                      :selection {:x_scroll {:type      "interval"
                                             :bind      "scales"
                                             :encodings ["x"]}}}))
@@ -65,14 +67,15 @@
    ; example/explanation.
    :vconcat     (into
                   []
-                  (for [field fields-to-plot]
-                    {:mark      "bar"
+                  (for [[field {:keys [aggregation-encoding]}] fields-to-plot]
+                    {:mark      {:type "bar" :tooltip true}
                      :width     500
                      :height    400
-                     :encoding  {:x       {:timeUnit "hours"
-                                           :field    "start"
-                                           :type     "temporal"}
-                                 :y       {:aggregate "mean" :field field}}
+                     :encoding  {:x {:timeUnit "hours"
+                                     :field    "start"
+                                     :type     "temporal"}
+                                 :y (merge {:aggregate "mean" :field field}
+                                           aggregation-encoding)}
                      :selection {:x_scroll {:type      "interval"
                                             :bind      "scales"
                                             :encodings ["x"]}}}))
