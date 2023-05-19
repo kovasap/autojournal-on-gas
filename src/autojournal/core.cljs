@@ -12,6 +12,7 @@
             [autojournal.mood :as mood]
             [autojournal.journal5 :as journal5]
             [autojournal.food-and-journal :as food-and-journal]
+            [autojournal.food.main :as food]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [autojournal.continuous-glucose-monitoring :as cgm]
@@ -25,7 +26,8 @@
 (defn ^:export write-report
   []
   (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
-        journal-data (journal5/get-events)]
+        journal-data (journal5/get-events)
+        food-data (food/get-meal-events 365)]
     (write-vega-page
       "vega.html"
       (make-all-event-plots

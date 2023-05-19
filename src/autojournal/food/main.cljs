@@ -22,6 +22,10 @@
       (add-db-data-to-meals (recent-items all-meals days)
                             food-db))))
 
+(defn get-meal-events
+  [days]
+  (map meal->event (get-meals days)))
+
 
 (defn report
   [days-to-summarize]
@@ -29,6 +33,4 @@
 
 (defn update-calendar!
   [days]
-  (let [all-meals (map row->meal (first (drive/get-files food-sheet-name)))
-        todays-meals (recent-items all-meals days)]
-    (mapv calendar/add-event! (map meal->event todays-meals))))
+  (mapv calendar/add-event! (get-meal-events days)))
