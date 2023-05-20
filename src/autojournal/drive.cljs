@@ -4,13 +4,17 @@
             [autojournal.testing-utils :refer [assert=]]
             [clojure.string :refer [ends-with?]]))
 
+(defn -get-files
+  [filename]
+  (let [file-iterator (.. js/DriveApp (getFilesByName filename))]
+    (loop [acc []]
+       (if (.hasNext file-iterator)
+         (recur (conj acc (.next file-iterator)))
+         acc))))
+
 (defn -get-file
   [filename]
-  (let [file-iterator (.. js/DriveApp (getFilesByName filename))
-        files (loop [acc []]
-                (if (.hasNext file-iterator)
-                  (recur (conj acc (.next file-iterator)))
-                  acc))
+  (let [files (-get-files filename)
         num-files (count files)]
     (cond
      (= 0 num-files) (prn (str "No files with name " filename))
@@ -108,8 +112,19 @@
   (map (comp floatify-vals stringify-keys)
        (first (get-files filename))))
 
-(defn write-file
+(defn trash-files
+  [filename]
+  (env-switch
+    {:node #(prn (str "trash-files called with " filename))
+     :app-script #(doseq [file (-get-files filename)]
+                    (prn (str "trashing " filename))
+                    (.setTrashed file true))}))
+
+(defn overwrite-file
   [filename content]
   (env-switch
     {:node #(prn (str "write-file called with " filename "\n" content))
-     :app-script #(.. js/DriveApp (createFile filename content))}))
+     :app-script (fn []
+                   (trash-files filename)
+                   (prn (str "writing " filename))
+                   (.. js/DriveApp (createFile filename content)))}))

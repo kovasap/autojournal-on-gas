@@ -281,6 +281,7 @@
 (defn most-closely-matching-food
   "The food name in the db that has a name or aliases closest to the input-name."
   [input-name food-db]
+  (prn "got most closely matching food for " input-name)
   (first (rank-matches input-name (keys food-db)))
   #_(let [clean-input-name (clean-phrase input-name)
           distances        (for [db-food-name (keys food-db)]
@@ -288,6 +289,8 @@
                               (word-levenshtein clean-input-name
                                                 (clean-phrase db-food-name))])]
       (first (apply min-key last distances))))
+
+(def most-closely-matching-food-memoized (memoize most-closely-matching-food))
 
 
 (assert= (most-closely-matching-food "potato baked" test-food-db)
@@ -304,6 +307,7 @@
   (5 apples / 1 DB apple) * 100mg DB thing = 500 mg thing in logged food
   "
   [logged-food db-food]
+  (prn "Got scaled db food" logged-food db-food)
   (let [factor (if (= 0 (:quantity db-food))
                  0
                  (/ (:quantity logged-food) (:quantity db-food)))]
@@ -319,8 +323,8 @@
   [foods food-db]
   (for [food foods
         :let [db-food (-> food-db
-                          (get (most-closely-matching-food (:name food)
-                                                           food-db))
+                          (get (most-closely-matching-food-memoized (:name food)
+                                                                    food-db))
                           (get (simplify-db-unit (:quantity-units food))))]]
     (if (nil? db-food)
       food
@@ -350,5 +354,6 @@
   {:malli/schema [:=> [:cat [:sequential Meal] FoodDB]
                   [:sequential Meal]]}
   [meals food-db]
+  (prn "Adding database data to meals...")
   (for [meal meals]
     (update meal :foods #(add-db-data-to-foods % food-db))))

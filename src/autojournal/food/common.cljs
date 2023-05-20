@@ -30,7 +30,7 @@
   [:map [:datetime :any]  ; js datetime
    [:foods [:sequential Food]]
    [:oil [:enum "None" "Light" "Medium" "Heavy"]]
-   [:picture :string]])
+   [:image :string]])
 
 (def units-map
   {"cup" ["cups"]

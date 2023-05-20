@@ -12,11 +12,10 @@
             [autojournal.mood :as mood]
             [autojournal.journal5 :as journal5]
             [autojournal.food-and-journal :as food-and-journal]
-            [autojournal.food.main :as food]
             [autojournal.location :as location :refer [Reading TallyFunction]]
             [autojournal.env-switching :refer [env-switch]]
             [autojournal.continuous-glucose-monitoring :as cgm]
-            [autojournal.vega :refer [make-all-event-plots write-vega-page]]
+            [autojournal.vega :refer [make-all-event-plots write-vega-page timeline-plot-types]]
             [cljs-time.core :refer [date-time today minus days]]
             [malli.core :as m]
             [cljs-time.coerce :refer [to-long]]
@@ -27,15 +26,18 @@
   []
   (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
         journal-data (journal5/get-events)
-        food-data (food/get-meal-events 365)]
+        food-data    (food/get-last-meal-events 200)]
     (write-vega-page
       "vega.html"
       (make-all-event-plots
-        (concat cgm-data journal-data)
-        {"glucose" {}
-         "valence" {:encoding {:type "ordinal"
-                               :sort ["Meh" "OK" "Good" "Great" "Amazing"]}
-                    :aggregation-encoding {:aggregate "count"}}}))))
+        (concat cgm-data journal-data food-data)
+        {"glucose" {:timeline-type :line :aggregation "mean"}
+         "valence" {:timeline-type :ordinal-line
+                    :timeline-args {:sort-order
+                                    ["Meh" "OK" "Good" "Great" "Amazing"]}
+                    :aggregation   "count"}
+         "food-count"   {:timeline-type :line
+                         :timeline-args {:tooltip-key :image}}}))))
 
 (defn ^:export update-lifelog []
   (let [days-to-update 5]

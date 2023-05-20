@@ -44,7 +44,7 @@
 
 (defn -food-regex
   [raw-unit]
-  (re-pattern (str "(.*)\\s*(" raw-unit ")\\s+(.+)")))
+  (re-pattern (str "(.*)\\s+(" raw-unit ")\\s+(.+)")))
 
 (defn extract-unitless-quantity
   "Returns [amount \"unit\" food] for a food string without any units in it."
@@ -64,13 +64,19 @@
                              (replace {raw-unit std-unit}
                                       (rest (re-matches (-food-regex raw-unit)
                                                         food-str))))))))]
-    (cond (< 1 (count matches)) (do (prn "Multiple matches for " food-str) nil)
+    (cond (< 1 (count matches)) (do (prn (str "Multiple matches for "
+                                              food-str
+                                              matches))
+                                    nil)
           (= 0 (count matches)) (extract-unitless-quantity food-str)
           :else                 (first matches))))
 
 (assert=
-  '("40 " "calories" "roasted seaweed")
-  (extract-units "40 calories roasted seaweed"))
+  (extract-units "40 calories roasted seaweed")
+  '("40" "calories" "roasted seaweed"))
+(assert=
+  (extract-units "0.666 cup peach brioch tart")
+  '("0.666" "cup" "peach brioch tart"))
     
 (defn -remove-of
   [of-food?]
@@ -80,11 +86,13 @@
 
 (defn -sum-and-quantity
   [quantity]
-  (let [quantities (rest (re-matches #"(.+)\s+and\s+(.+)" quantity))]
-    (if (empty? quantities)
-      (js/parseFloat quantity)
-      (let [[quantity1 quantity2] quantities]
-        (+ (js/parseFloat quantity1) (js/parseFloat quantity2))))))
+  (if (nil? quantity)
+    nil
+    (let [quantities (rest (re-matches #"(.+)\s+and\s+(.+)" quantity))]
+      (if (empty? quantities)
+        (js/parseFloat quantity)
+        (let [[quantity1 quantity2] quantities]
+          (+ (js/parseFloat quantity1) (js/parseFloat quantity2)))))))
 
 (defn parse-food
   {:malli/schema [:=> [:cat :string] Food]}
@@ -130,10 +138,14 @@
 (defn row->meal
   {:malli/schema [:=> [:cat [:map-of :keyword :string]] Meal]}
   [row]
-  {:datetime (:Timestamp row)
-   :foods    (parse-foods (:Foods row))
-   :oil      ((keyword "Oil Amount") row)
-   :picture  (:Picture.http row)})
+  (let [foods (parse-foods (:Foods row))]
+    {:datetime   (:Timestamp row)
+     :foods      foods
+     :food-count (count foods)
+     :oil        ((keyword "Oil Amount") row)
+     ; image is a special key that is recognized by vega-lite plotting for
+     ; tooltips https://vega.github.io/vega-lite/docs/tooltip.html#tooltip-image
+     :image    (:Picture.http row)}))
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
@@ -145,9 +157,10 @@
 (defn meal->event
   {:malli/schema [:=> [:cat Meal] Event]}
   [meal]
-  {:start       (+ pdt-offset (to-long (:datetime meal)))
-   :end         (+ pdt-offset
-                   (to-long (plus (from-date (:datetime meal)) (minutes 30))))
-   :summary     (join ", " (map :name (:foods meal)))
-   :foods       (:foods meal)
-   :description (with-out-str (pprint (dissoc meal :datetime)))})
+  (merge
+    {:start       (+ pdt-offset (to-long (:datetime meal)))
+     :end         (+ pdt-offset
+                     (to-long (plus (from-date (:datetime meal)) (minutes 30))))
+     :summary     (join ", " (map :name (:foods meal)))
+     :description (with-out-str (pprint (dissoc meal :datetime)))}
+    (dissoc meal :datetime)))

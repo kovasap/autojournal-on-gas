@@ -41,6 +41,12 @@ In another, run:
 node dev-Code.js
 ```
 
+### Viewing Generated Files
+
+```
+export FILENAME=vega.html; gdrive download query "name='$FILENAME' and trashed=false" --force; xdg-open $FILENAME
+```
+
 ## TODOs
 
  - Send emails with insights (perhaps with biomarker correlator links)

@@ -13,24 +13,46 @@
 
 ; --------------- Main -----------------------------------------
 
-(defn get-meals
+(defn no-meals-str
   [days]
+  (str "No foods in last " days ", did you sync momentodb?"))
+
+
+(defn get-meals-with-db-data
+  "Filter function takes in a seq of meals and returns a subset."
+  [filter-fn]
   (let [food-db   (get-food-db)
         all-meals (map row->meal (first (drive/get-files food-sheet-name)))]
     (if (= 0 (count all-meals))
-      (str "No foods in last " days ", did you sync momentodb?")
-      (add-db-data-to-meals (recent-items all-meals days)
+      (do (prn "No meals returned!") [])
+      (add-db-data-to-meals (filter-fn all-meals)
                             food-db))))
 
-(defn get-meal-events
+(defn get-meals
+  "Filter function takes in a seq of meals and returns a subset."
+  [filter-fn]
+  (filter-fn (map row->meal (first (drive/get-files food-sheet-name)))))
+
+(defn get-recent-meals-with-db-data
   [days]
-  (map meal->event (get-meals days)))
+  (get-meals #(recent-items % days)))
+
+(defn get-last-meals
+  [n]
+  (get-meals #(take-last n %)))
+
+(defn get-last-meal-events
+  [n]
+  (map meal->event (get-last-meals n)))
 
 
 (defn report
   [days-to-summarize]
-  (build-report-email (get-meals days-to-summarize) days-to-summarize))
+  (let [meals (get-recent-meals-with-db-data days-to-summarize)]
+    (build-report-email (if (seq meals) meals (no-meals-str days-to-summarize))
+                        days-to-summarize)))
 
 (defn update-calendar!
   [days]
-  (mapv calendar/add-event! (get-meal-events days)))
+  (mapv calendar/add-event!
+        (map meal->event (get-recent-meals-with-db-data days))))

@@ -1,5 +1,5 @@
 (ns autojournal.vega
-  (:require [autojournal.drive :refer [write-file]]
+  (:require [autojournal.drive :refer [overwrite-file]]
             [clojure.string :as st]))
   ; (:require ["vega" :as vega]))
 
@@ -29,7 +29,34 @@
                    {:x {:field "a", :type "nominal", :axis {:labelAngle 0}},
                     :y {:field "b", :type "quantitative"}}})
 
-(defn plot-events
+
+
+(def timeline-plot-types
+  {:gantt
+   ; https://vega.github.io/vega-lite/examples/bar_gantt.html
+   ; https://vega.github.io/vega-lite/examples/layer_bar_labels_grey.html
+   (fn
+     [field _]
+     {:encoding {:y field :type "ordinal"}
+      :layer    [{:mark     {:type "bar" :color "#ddd"}
+                  :encoding {:x  {:field "start" :type "temporal"}
+                             :x2 {:field "end" :type "temporal"}}}
+                 {:mark     {:type "text" :align "left" :dx 5}
+                  :encoding {:text {:field field}}}]})
+   :line
+   (fn [field {:keys [tooltip-key]}]
+     {:mark      {:type "line" :tooltip true :point (boolean tooltip-key)}
+      :encoding  (merge {:x {:field "start" :type "temporal"}
+                         :y {:field field :type "quantitative"}} (if (nil? tooltip-key)
+                                                                  {}
+                                                                  {:tooltip [{:field (name tooltip-key)}]}))})
+   :ordinal-line
+   (fn [field {:keys [sort-order]}]
+     {:mark      {:type "line" :tooltip true}
+      :encoding  {:x {:field "start" :type "temporal"}
+                  :y {:field field :type "ordinal" :sort sort-order}}})})
+
+(defn plot-events-on-timeline
   "Returns vega-data."
   [events fields-to-plot]
   {:$schema     "https://vega.github.io/schema/vega-lite/v5.json"
@@ -38,26 +65,23 @@
    ; Makes a stack of plots, one for each field.
    ; See https://stackoverflow.com/a/62460026 for scrolling
    ; example/explanation.
-   :vconcat     (into
-                  []
-                  (for [[field {:keys [encoding]}] fields-to-plot]
-                    {:mark      {:type "line" :tooltip true}
-                     :width     1000
-                     :height    400
-                     :encoding  {:x {:field "start" :type "temporal"}
-                                 ; https://vega.github.io/vega-lite/examples/bar_gantt.html
-                                 ; :x2       {:field "end" :type "temporal"}
-                                 :y (merge {:field field :type "quantitative"}
-                                           encoding)}
-                     :selection {:x_scroll {:type      "interval"
-                                            :bind      "scales"
-                                            :encodings ["x"]}}}))
+   :vconcat     (into []
+                      (for [[field {:keys [timeline-type timeline-args]}]
+                            fields-to-plot]
+                        (merge {:width     1000
+                                :height    400
+                                :selection {:x_scroll {:type      "interval"
+                                                       :bind      "scales"
+                                                       :encodings ["x"]}}}
+                               ((timeline-type timeline-plot-types)
+                                field
+                                timeline-args))))
    ; Lets us scroll on the multiple plots with the x axis moving together and x
    ; independently.
    :resolve     {:scale {:x "shared" :y "independent"}}})
 
 
-(defn plot-events-hourly
+(defn plot-events-grouped-by-hour
   [events fields-to-plot]
   {:$schema     "https://vega.github.io/schema/vega-lite/v5.json"
    :description "hourly_events"
@@ -67,15 +91,14 @@
    ; example/explanation.
    :vconcat     (into
                   []
-                  (for [[field {:keys [aggregation-encoding]}] fields-to-plot]
+                  (for [[field {:keys [aggregation]}] fields-to-plot]
                     {:mark      {:type "bar" :tooltip true}
                      :width     500
                      :height    400
                      :encoding  {:x {:timeUnit "hours"
                                      :field    "start"
                                      :type     "temporal"}
-                                 :y (merge {:aggregate "mean" :field field}
-                                           aggregation-encoding)}
+                                 :y {:aggregate aggregation :field field}}
                      :selection {:x_scroll {:type      "interval"
                                             :bind      "scales"
                                             :encodings ["x"]}}}))
@@ -86,8 +109,8 @@
 
 (defn make-all-event-plots
   [events fields-to-plot]
-  [(plot-events events fields-to-plot)
-   (plot-events-hourly events fields-to-plot)])
+  [(plot-events-on-timeline events fields-to-plot)
+   (plot-events-grouped-by-hour events fields-to-plot)])
   
        
 (defn vega-chart
@@ -109,6 +132,15 @@
     <script src='https://cdn.jsdelivr.net/npm/vega@5.25.0'></script>
     <script src='https://cdn.jsdelivr.net/npm/vega-lite@5.9.0'></script>
     <script src='https://cdn.jsdelivr.net/npm/vega-embed@6.22.1'></script>
+    <style>
+      /*
+      https://vega.github.io/vega-lite/docs/tooltip.html#tooltip-image
+      */
+      #vg-tooltip-element img {
+        max-width: 300px;
+        max-height: 300px;
+      }
+    </style>
   </head>
   <body>
   " (st/join "\n" vega-charts) "
@@ -118,4 +150,4 @@
 
 (defn write-vega-page
   [filename vega-datas]
-  (write-file filename (vega-page (map vega-chart vega-datas))))
+  (overwrite-file filename (vega-page (map vega-chart vega-datas))))

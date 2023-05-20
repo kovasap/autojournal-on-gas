@@ -6,7 +6,6 @@
 (defn row->event
   {:malli/schema [:=> [:cat [:map-of :keyword :string]] Event]}
   [row]
-  (prn row)
   (let [time-string ((keyword "Device Timestamp") row)]
     {:start       time-string
      :end         time-string 
