@@ -5,6 +5,7 @@
             [autojournal.calendar :as calendar]
             [autojournal.sleep :as sleep]
             [autojournal.gmail :as gmail]
+            [autojournal.activitywatch :as activitywatch]
             [autojournal.html-utils :refer [Hiccup]]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
             [autojournal.food.main :as food]
@@ -41,6 +42,7 @@
 
 (defn ^:export update-lifelog []
   (let [days-to-update 5]
+    (activitywatch/update-calendar! days-to-update)
     (mood/update-calendar! days-to-update)
     (journal5/update-calendar! days-to-update)
     (food/update-calendar! days-to-update)

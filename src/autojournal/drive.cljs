@@ -57,6 +57,10 @@
   (cond 
     (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
     (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
+    (ends-with? (.getName blob) ".json") [(js->clj
+                                            (.parse js/JSON
+                                                    (.getDataAsString blob))
+                                            :keywordize-keys true)]
     :else [(.getDataAsString blob)]))
 
 (defn -get-file-contents
@@ -67,7 +71,6 @@
      "application/vnd.google-apps.spreadsheet") [(sheet-to-maps
                                                    (.getId file))]
     :else (-get-blob-contents (.getBlob file))))
-       
   
 (defn get-files
   "Gets data for all files with the given filename.
@@ -78,8 +81,8 @@
   (prn (str "Getting " filename))
   (env-switch
     {:node #(prn (str "get-files called with " filename))
-     :app-script #(-get-file-contents
-                    (-get-file filename))}))
+     :app-script #(reduce concat
+                          (map -get-file-contents (-get-files filename)))}))
 
 (defn stringify-keys
   [m]

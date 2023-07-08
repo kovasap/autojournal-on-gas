@@ -18,6 +18,8 @@
        (contains? event :foods) "Food"
        (contains? event :activities) "Mood"
        (contains? event :activity) "Journal"
+       (not (nil? (:app-name event))) "Android Activity"
+       (not (nil? (:program-name event))) "Computer Activity"
        :else "")))
 
 (defn get-js-start-end-times
