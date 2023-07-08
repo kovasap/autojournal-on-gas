@@ -8,19 +8,22 @@
   (memoize (fn [cal-name]
              (first (. js/CalendarApp (getCalendarsByName cal-name))))))
 
+(defn get-calendar-name
+  [event]
+  (cond (contains? event :lat)             "Locations and Travel"
+        (contains? event :foods)           "Food"
+        (contains? event :activities)      "Mood"
+        (contains? event :activity)        "Journal"
+        (not (nil? (:app-name event)))     "Android Activity"
+        (not (nil? (:program-name event))) "Computer Activity"
+        :else                              ""))
+
 ; TODO use malli types here to match instead of single keys
 (defn get-calendar
   {:malli/schema [:=> [:cat Event] :any]}
   [event]
-  (get-cal-by-name-cached
-    (cond
-       (contains? event :lat) "Locations and Travel"
-       (contains? event :foods) "Food"
-       (contains? event :activities) "Mood"
-       (contains? event :activity) "Journal"
-       (not (nil? (:app-name event))) "Android Activity"
-       (not (nil? (:program-name event))) "Computer Activity"
-       :else "")))
+  (get-cal-by-name-cached (get-calendar-name event)))
+    
 
 (defn get-js-start-end-times
   [event]
@@ -49,15 +52,17 @@
   {:malli/schema [:=> [:cat Event] :nil]}
   [event]
   (env-switch
-    {:node #(prn event),
+    {:node       #(prn event)
      :app-script (fn []
                    (let [calendar (get-calendar event)
                          [start-time end-time] (get-js-start-end-times event)]
-                     (prn "Adding" (:summary event))
-                     (delete-duplicate-event! event)
-                     (. calendar
-                        (createEvent (:summary event)
-                                     start-time
-                                     end-time
-                                     (clj->js {:description (:description
-                                                              event)})))))}))
+                     (prn "Adding "       (:summary event)
+                          " to calendar " (get-calendar-name event))
+                     (when (not (nil? calendar))
+                       (delete-duplicate-event! event)
+                       (. calendar
+                          (createEvent (:summary event)
+                                       start-time
+                                       end-time
+                                       (clj->js {:description
+                                                 (:description event)}))))))}))

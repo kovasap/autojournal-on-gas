@@ -40,10 +40,7 @@
 (defn- merge-entries
   "Assume entry1 comes before entry2."
   [entry1 entry2]
-  ; (prn entry1)
-  ; (prn entry2)
-  ; (prn)
-  (let [entry1-is-merged? (not (string? (:app-name entry1)))]
+  (let [entry1-is-merged? (set? (:app-name entry1))]
     {:datetime (:datetime entry1)
      :duration (+ (/ (- (to-long (:datetime entry2))
                         (to-long (:datetime entry1)))
@@ -151,10 +148,7 @@
    :end         (+ (to-long datetime) (* 1000 duration)) 
    :app-name    app-name
    :summary     (str app-name)
-   :description (with-out-str (pprint (dissoc raw-data
-                                              :Timestamp
-                                              :__id
-                                              :Activity)))})
+   :description (with-out-str (pprint raw-data))})
 
 (defn update-calendar!
   [days]
