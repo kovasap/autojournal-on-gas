@@ -3,6 +3,7 @@
 (require '[clojure.java.io]
          '[cheshire.core :as json]
          '[clojure.string :as string]
+         '[clojure.java.shell :refer [sh]]
          '[clojure.tools.cli :refer [parse-opts]])
 
 (import 'java.time.format.DateTimeFormatter
@@ -51,4 +52,36 @@
                                        ; inclusive
                                        "&start=" today-str)))))))
     
-(spit (str "activitywatch-" today-str ".edn") (str all-data))
+#_(spit (str "activitywatch-" today-str ".edn") (str all-data))
+
+(def export-filename
+  (str "aw-buckets-export-"
+       (first (string/split (:out (sh "hostname")) #"\s")) ".json"))
+  
+
+(sh "mkdir" "aw-export")
+(spit export-filename
+      (slurp "http://localhost:5600/api/0/export"))
+
+(defn get-file-ids
+  [filename]
+  (let [command ["gdrive"
+                             "list" "--no-header"
+                             "-q"   (str "trashed = false and name = '"
+                                         filename
+                                         "'")]
+        raw-output (:out (apply sh command))]
+    (prn (string/join " " command))
+    (prn raw-output)
+    (for [line (string/split raw-output #"\n")]
+      (first (string/split line #"\s")))))
+
+(prn (get-file-ids export-filename))
+
+(doseq [file-id (get-file-ids export-filename)]
+  (prn (:out (sh "gdrive" "delete" file-id))))
+
+(prn (:out (sh "gdrive"
+               "upload"
+               "-p" "18gTzw9I7TzqDjqx-eFouM_-VyGf94t8s"
+               export-filename)))
