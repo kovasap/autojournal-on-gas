@@ -59,13 +59,18 @@
        (first (string/split (:out (sh "hostname")) #"\s")) ".json"))
   
 
-(sh "mkdir" "aw-export")
 (spit export-filename
       (slurp "http://localhost:5600/api/0/export"))
 
+(def gdrive-cmd
+  (if (string/includes? (System/getProperty "os.name") "Windows")
+     "C:\\Users\\kovas\\OneDrive\\Desktop\\gdrive.exe"
+	 "gdrive"))
+  
+
 (defn get-file-ids
   [filename]
-  (let [command ["gdrive"
+  (let [command [gdrive-cmd
                              "list" "--no-header"
                              "-q"   (str "trashed = false and name = '"
                                          filename
@@ -79,9 +84,9 @@
 (prn (get-file-ids export-filename))
 
 (doseq [file-id (get-file-ids export-filename)]
-  (prn (:out (sh "gdrive" "delete" file-id))))
+  (prn (:out (sh gdrive-cmd "delete" file-id))))
 
-(prn (:out (sh "gdrive"
+(prn (:out (sh gdrive-cmd
                "upload"
                "-p" "18gTzw9I7TzqDjqx-eFouM_-VyGf94t8s"
                export-filename)))
