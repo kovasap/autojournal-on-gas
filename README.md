@@ -66,4 +66,7 @@ data.
 2. Download sync-activitywatch.clj from this repo
 3. Install babashka for windows: https://github.com/babashka/babashka/releases
 4. Create a [scheduled task](https://stackoverflow.com/a/21502661) to run babashka with sync-activitywatch.clj as an argument on a schedule.
-5. Sync the export file to google drive.
+5. Sync the export file to google drive by adding the dir to the google drive desktop client's watched dirs.
+
+![image](https://github.com/kovasap/autojournal-on-gas/assets/8763010/fc76b903-6095-425f-8f9d-a0b2a240b862)
+
