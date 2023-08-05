@@ -10,7 +10,9 @@
 
 ; TODO make this a pattern instead
 (def export-filenames
-  ["aw-buckets-export.json" "aw-buckets-export-frosty.json" "aw-buckets-export-kovas2.json"])
+  ["aw-buckets-export.json"
+   "aw-buckets-export-frosty.json"
+   "aw-buckets-export-kovas2.json"])
 
 (def buckets-to-ignore
   #{:aw-watcher-android-unlock :aw-watcher-afk_frosty :aw-watcher-afk_kovas2})
@@ -43,8 +45,8 @@
   ; (prn "Raw Data" (drive/get-files export-filename))
   (parse-entries (drive/get-files export-filename)))
 
-; 10 minutes
-(def min-entry-size-secs (* 60 10))
+; 15 minutes
+(def min-entry-size-secs (* 60 15))
 
 
 (defn- conj-not-nil
@@ -157,7 +159,9 @@
           :timestamp "2023-07-08T15:53:34.359Z"}]}}}]))
 
 (def app-names-to-hide
-  #{"Nova7" "One UI Home" "Android System"})
+  #{"Nova7" "One UI Home" "Android System"
+    ; Windows
+    "LockApp.exe"})
 
 (defn entry->event
   [{:keys [datetime duration app-name bucket] :as event}]
