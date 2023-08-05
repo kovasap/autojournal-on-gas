@@ -17,3 +17,6 @@ function update_lifelog() {
 function write_report() {
   autojournal.core.write_report();
 }
+function clean_last_week_events() {
+  autojournal.core.clean_last_week_events();
+}

@@ -2,20 +2,28 @@
   (:require [autojournal.drive :as drive]
             [autojournal.time :refer [recent-items]]
             [autojournal.calendar :as calendar]
+            [clojure.string :refer [join split]]
             [cljs-time.core :refer [plus minutes]]
             [cljs-time.coerce :refer [to-long from-date from-string]]
             [cljs.pprint :refer [pprint]]
             [autojournal.schemas :refer [Event]]))
 
-(def export-filename "aw-buckets-export.json")
+; TODO make this a pattern instead
+(def export-filenames
+  ["aw-buckets-export.json" "aw-buckets-export-kovas2.json"])
+
+(def buckets-to-ignore
+  #{:aw-watcher-android-unlock :aw-watcher-afk_kovas2})
 
 
 (defn aw-event->entry
-  [{:keys [timestamp duration] {:keys [app]} :data :as aw-event}
+  [{:keys [timestamp duration] {:keys [app title]} :data :as aw-event}
    aw-bucket-name]
-  {:datetime (from-string timestamp)
+  ; Remove the end of timestamps like "2023-07-07T00:27:28.387000+00:00"
+  {:datetime (from-string (first (split timestamp #"\.")))
    :duration duration
    :app-name app
+   :title title
    :bucket   aw-bucket-name
    :raw-data aw-event})
 
@@ -24,18 +32,26 @@
   (reverse
    (for [filedata raw-jsons
          [bucket-name bucket-data] (:buckets filedata)
-         aw-event (take 50 (:events bucket-data))
-         :when (not (nil? (:duration aw-event)))]
+         aw-event (take 1000 (:events bucket-data))
+         :when (and
+                 (not (contains? buckets-to-ignore bucket-name))
+                 (not (nil? (:duration aw-event))))]
      (aw-event->entry aw-event bucket-name))))
 
 (defn get-entries
-  []
-  (prn "Raw Data" (drive/get-files export-filename))
+  [export-filename]
+  ; (prn "Raw Data" (drive/get-files export-filename))
   (parse-entries (drive/get-files export-filename)))
 
 ; 10 minutes
 (def min-entry-size-secs (* 60 10))
 
+
+(defn- conj-not-nil
+  [coll x]
+  (if (not (nil? x))
+    (conj coll x)
+    coll))
 
 (defn- merge-entries
   "Assume entry1 comes before entry2."
@@ -46,17 +62,16 @@
                         (to-long (:datetime entry1)))
                      1000)
                   (:duration entry2))
-     :app-name (if entry1-is-merged?
-                 (conj (:app-name entry1) (:app-name entry2))
-                 #{(:app-name entry1) (:app-name entry2)})
-     :bucket (:aw-bucket-name entry1)
-     :raw-data (if entry1-is-merged?
-                 (conj (:app-name entry1) (:app-name entry2))
-                 [(:raw-data entry1) (:raw-data entry2)])}))
+     :app-name (conj-not-nil (if entry1-is-merged?
+                               (:app-name entry1)
+                               #{(:app-name entry1)})
+                             (:app-name entry2))
+     :bucket   (:bucket entry1)
+     :raw-data (conj-not-nil (if entry1-is-merged?
+                               (:raw-data entry1)
+                               [(:raw-data entry1)])
+                             (:raw-data entry2))}))
   
-
-; TODO I may need to do this on a per-bucket basis so entries that are from
-; different devices are not condensed.
 (defn condense-entries
   "Condense entries so that there are a manageable amount per day."
   ([entries] (condense-entries [] (first entries) (rest entries)))
@@ -141,18 +156,33 @@
           :id        95035
           :timestamp "2023-07-08T15:53:34.359Z"}]}}}]))
 
+(def app-names-to-hide
+  #{"Nova7" "One UI Home" "Android System"})
 
 (defn entry->event
-  [{:keys [datetime duration app-name raw-data]}]
+  [{:keys [datetime duration app-name bucket] :as event}]
   {:start       (to-long datetime)
-   :end         (+ (to-long datetime) (* 1000 duration)) 
+   :end         (+ (to-long datetime) (* 1000 duration))
    :app-name    app-name
-   :summary     (str app-name)
-   :description (with-out-str (pprint raw-data))})
+   :bucket      bucket
+   :summary     (if (set? app-name)
+                  (join ", "
+                        (filter #(not (contains? app-names-to-hide %))
+                          app-name))
+                  (str app-name))
+   :description (with-out-str (pprint event))})
 
 (defn update-calendar!
   [days]
-  (let [all-entrys (condense-entries (get-entries))
-        recent-entries (recent-items all-entrys days)]
-    (prn "Processed entries" all-entrys)
-    (mapv calendar/add-event! (map entry->event recent-entries))))
+  (doseq [export-filename export-filenames]
+    (let [all-entrys        (get-entries export-filename)
+          recent-entries    (recent-items all-entrys days)
+          entries-by-bucket (group-by :bucket recent-entries)]
+      ; reverse is just here to make the android entries parse last
+      (doall (for [[bucket entries] (reverse entries-by-bucket)
+                   :let [condensed-entries (condense-entries entries)]]
+               (do (prn "Processed "  (count all-entrys)
+                        " uploading " (count condensed-entries)
+                        " condensed entries for bucket " bucket)
+                   (mapv calendar/add-event!
+                     (map entry->event condensed-entries))))))))

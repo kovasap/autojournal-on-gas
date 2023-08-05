@@ -11,17 +11,29 @@
             [autojournal.food.main :as food]
             [autojournal.drive :as drive]
             [autojournal.mood :as mood]
-            [autojournal.journal5 :as journal5]
+            [autojournal.journal5 :as journal5 :refer [Entry]]
             [autojournal.food-and-journal :as food-and-journal]
+            [autojournal.food.common :refer [Meal NutrientName Food]]
+            [autojournal.food.report-email :refer [PercentOfTarget]]
+            [autojournal.food.food-db :refer [PhraseMatch FoodDB]]
+            [autojournal.food.food-db-build :refer [RawCronFood]]
+            [autojournal.sleep :refer [Night]]
             [autojournal.location :as location :refer [Reading TallyFunction]]
+            [autojournal.time :refer [JsDate]]
             [autojournal.env-switching :refer [env-switch]]
             [autojournal.continuous-glucose-monitoring :as cgm]
-            [autojournal.vega :refer [make-all-event-plots write-vega-page timeline-plot-types]]
+            [autojournal.vega
+             :refer
+             [make-all-event-plots write-vega-page timeline-plot-types]]
             [cljs-time.core :refer [date-time today minus days]]
             [malli.core :as m]
             [cljs-time.coerce :refer [to-long]]
             [malli.dev.cljs :as dev]
             [malli.dev.pretty :as pretty]))
+
+(defn ^:export clean-last-week-events
+  []
+  (calendar/clean-events! 5))
 
 (defn ^:export write-report
   []

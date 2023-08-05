@@ -8,15 +8,20 @@
   (memoize (fn [cal-name]
              (first (. js/CalendarApp (getCalendarsByName cal-name))))))
 
+(def managed-calendar-names
+  #{"Locations and Travel" "Food" "Mood" "Journal" "Android ActivityWatch"
+    "Laptop ActivityWatch" "Desktop ActivityWatch"})
+
 (defn get-calendar-name
   [event]
-  (cond (contains? event :lat)             "Locations and Travel"
-        (contains? event :foods)           "Food"
-        (contains? event :activities)      "Mood"
-        (contains? event :activity)        "Journal"
-        (not (nil? (:app-name event)))     "Android Activity"
-        (not (nil? (:program-name event))) "Computer Activity"
-        :else                              ""))
+  (cond (contains? event :lat)        "Locations and Travel"
+        (contains? event :foods)      "Food"
+        (contains? event :activities) "Mood"
+        (contains? event :activity)   "Journal"
+        (= (:bucket event) :aw-watcher-android-test) "Android ActivityWatch"
+        (= (:bucket event) :aw-watcher-window_kovas2) "Laptop ActivityWatch"
+        (= (:bucket event) :aw-watcher-window_frosty) "Desktop ActivityWatch"
+        :else                         ""))
 
 ; TODO use malli types here to match instead of single keys
 (defn get-calendar
@@ -66,3 +71,23 @@
                                        end-time
                                        (clj->js {:description
                                                  (:description event)}))))))}))
+
+(defn clean-events!
+  [days]
+  (env-switch
+    {:node       #(prn "Cleaning")
+     :app-script (fn []
+                   (doseq [calendar-name managed-calendar-names]
+                     (let [now             (js/Date.)
+                           days-ago        (js/Date.
+                                             (- (.getTime now)
+                                                (* 1000 60 60 24 days)))
+                           calendar        (get-cal-by-name-cached
+                                             calendar-name)
+                           existing-events (. calendar
+                                              (getEvents days-ago now))]
+                       (prn "Date range: " now days-ago)
+                       (prn "Cleaning " (count existing-events)
+                            " from "    calendar-name)
+                       (doseq [cal-event existing-events]
+                         (. cal-event deleteEvent)))))}))
