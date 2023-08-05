@@ -60,6 +60,15 @@ data.
 
 ## ActivityWatch
 
+### Linux
+
+To run once a day at 10pm, run `crontab -e` and add this snippet (assuming you
+cloned autojournal into your home directory ~/):
+
+```
+0 22 * * * ~/autojournal-on-gas/sync-activitywatch.clj
+```
+
 ### Windows
 
 1. Install [activitywatch for windows](https://activitywatch.net/) and have it run continuously
