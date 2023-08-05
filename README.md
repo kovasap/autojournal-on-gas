@@ -62,11 +62,11 @@ data.
 
 ### Linux
 
-To run once a day at 10pm, run `crontab -e` and add this snippet (assuming you
-cloned autojournal into your home directory ~/):
+To run every hour, run `crontab -e` and add this snippet (assuming you cloned
+autojournal into your home directory ~/):
 
 ```
-0 22 * * * ~/autojournal-on-gas/sync-activitywatch.clj
+0 * * * * ~/autojournal-on-gas/sync-activitywatch.clj
 ```
 
 ### Windows
