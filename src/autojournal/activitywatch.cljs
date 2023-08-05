@@ -10,10 +10,10 @@
 
 ; TODO make this a pattern instead
 (def export-filenames
-  ["aw-buckets-export.json" "aw-buckets-export-kovas2.json"])
+  ["aw-buckets-export.json" "aw-buckets-export-frosty.json" "aw-buckets-export-kovas2.json"])
 
 (def buckets-to-ignore
-  #{:aw-watcher-android-unlock :aw-watcher-afk_kovas2})
+  #{:aw-watcher-android-unlock :aw-watcher-afk_frosty :aw-watcher-afk_kovas2})
 
 
 (defn aw-event->entry
