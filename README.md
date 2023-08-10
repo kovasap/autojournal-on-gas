@@ -69,6 +69,12 @@ autojournal into your home directory ~/):
 0 * * * * ~/autojournal-on-gas/sync-activitywatch.clj
 ```
 
+You may need to specify the path to your `bb` like this:
+
+```
+0 * * * * /home/linuxbrew/.linuxbrew/bin/bb autojournal-on-gas/sync-activitywatch.clj &> awexport.log
+```
+
 ### Windows
 
 1. Install [activitywatch for windows](https://activitywatch.net/) and have it run continuously
