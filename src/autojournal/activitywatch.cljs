@@ -163,18 +163,21 @@
     ; Windows
     "LockApp.exe"})
 
+(defn app-set->str
+  [app-set]
+  (join ", " (filter #(not (contains? app-names-to-hide %)) app-set)))
+
 (defn entry->event
-  [{:keys [datetime duration app-name bucket] :as event}]
-  {:start       (to-long datetime)
-   :end         (+ (to-long datetime) (* 1000 duration))
-   :app-name    app-name
-   :bucket      bucket
-   :summary     (if (set? app-name)
-                  (join ", "
-                        (filter #(not (contains? app-names-to-hide %))
-                          app-name))
-                  (str app-name))
-   :description (with-out-str (pprint event))})
+  [{:keys [datetime duration app-name bucket raw-data] :as event}]
+  (let [most-used-title (:title (first (reverse (sort-by :duration
+                                                         raw-data))))]
+    {:start       (to-long datetime)
+     :end         (+ (to-long datetime) (* 1000 duration))
+     :bucket      bucket
+     :summary     (cond most-used-title most-used-title
+                        (set? app-name) (app-set->str app-name)
+                        :else app-name)
+     :description (with-out-str (pprint event))}))
 
 (defn update-calendar!
   [days]
