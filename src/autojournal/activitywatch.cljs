@@ -169,8 +169,8 @@
 
 (defn entry->event
   [{:keys [datetime duration app-name bucket raw-data] :as event}]
-  (let [most-used-title (:title (first (reverse (sort-by :duration
-                                                         raw-data))))]
+  (let [most-used-title (:title (:data (first (reverse (sort-by :duration
+                                                                raw-data)))))]
     {:start       (to-long datetime)
      :end         (+ (to-long datetime) (* 1000 duration))
      :bucket      bucket
