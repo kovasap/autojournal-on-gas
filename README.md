@@ -1,11 +1,11 @@
-# Autojournal Running on Google Apps Script
+# Autojournal Running on Google Apps Script (GAS)
 
-Proof of concept (i.e., hello world) codebase that compiles ClojureScript to js
-files which can be pushed to a Google Apps Suite project
-with [clasp](https://github.com/google/clasp), Google's command line utility
-for local Apps Script development.
+## Vision
 
-See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-script.
+Autojournal is meant to be a personal information management tool that can aggregate data from many sources and then push it to visualization and analysis tools.
+It tries to do this as automatically as possible.
+
+See also https://kovasap.github.io/docs/lifelogging/what-and-why/.
 
 ## Setup
 
@@ -17,6 +17,8 @@ See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-scrip
   1. If a project already exists, just `clasp login` and `clasp clone`.
 
 Go to project at https://script.google.com/home/my to run.
+
+See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-script for background details.
 
 ## Deployment 
 
@@ -59,6 +61,10 @@ Use https://github.com/jrmycanady/cronometer-export/pull/2/files to get food
 data.
 
 ## ActivityWatch
+
+### Android
+
+Manually "export all buckets" in the android app, then use DriveSync to push the json file to Google Drive.
 
 ### Linux
 
