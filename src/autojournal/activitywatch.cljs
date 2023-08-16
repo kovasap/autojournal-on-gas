@@ -169,14 +169,16 @@
 
 (defn entry->event
   [{:keys [datetime duration app-name bucket raw-data] :as event}]
-  (let [most-used-title (:title (:data (first (reverse (sort-by :duration
-                                                                raw-data)))))]
+  (let [most-used-title (:title (:data (if (vector? raw-data)
+                                         (first (reverse (sort-by :duration
+                                                                  raw-data)))
+                                         raw-data)))]
     {:start       (to-long datetime)
      :end         (+ (to-long datetime) (* 1000 duration))
      :bucket      bucket
      :summary     (cond most-used-title most-used-title
                         (set? app-name) (app-set->str app-name)
-                        :else app-name)
+                        :else           app-name)
      :description (with-out-str (pprint event))}))
 
 (defn update-calendar!
