@@ -60,6 +60,18 @@ export FILENAME=vega.html; gdrive download query "name='$FILENAME' and trashed=f
 Use https://github.com/jrmycanady/cronometer-export/pull/2/files to get food
 data.
 
+## Manual Tracking
+
+Use https://mementodatabase.com/ with a library like "Activity Journal.mlt2" in
+this repo.
+
+## Location Data
+
+Download https://gpslogger.app/.
+Make sure in the settings it is set to log to csv format only (creating a zip
+file for each day), then set it up to write the files automatically to Google
+Drive.
+
 ## ActivityWatch
 
 ### Android

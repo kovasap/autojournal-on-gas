@@ -56,7 +56,7 @@
 (defn ^:export update-lifelog []
   (let [days-to-update 1]
     (activitywatch/update-calendar! days-to-update)
-    (mood/update-calendar! days-to-update)
+    ; (mood/update-calendar! days-to-update)
     (journal5/update-calendar! days-to-update)
     (food/update-calendar! days-to-update)
     ; TODO make it so that some locations are named, based on a google drive
