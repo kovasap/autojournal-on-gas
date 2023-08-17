@@ -59,6 +59,8 @@
     (mood/update-calendar! days-to-update)
     (journal5/update-calendar! days-to-update)
     (food/update-calendar! days-to-update)
+    ; TODO make it so that some locations are named, based on a google drive
+    ; spreadsheet with columns (lat, long, radius (size of place), name)
     (location/update-calendar! 1)))
 
 
