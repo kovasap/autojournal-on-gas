@@ -2,6 +2,7 @@
   (:require [autojournal.drive :as drive]
             [autojournal.schemas :refer [Timestamp EventFetcher Event Date]]
             [autojournal.testing-utils :refer [assert=]]
+            [autojournal.calendar :as calendar]
             [cljs-time.core :as t]
             [cljs-time.coerce :refer [to-long from-long to-string from-string]]))
   
@@ -312,6 +313,13 @@
   (-readings-to-events
     (-get-readings-from-drive
        (-dates-in-time-window start-time end-time))))
+
+(defn update-calendar!
+  [days-to-update]
+  (let [today (t/today)
+        yesterday (t/minus today (t/days days-to-update))
+        events (get-events (to-long yesterday) (to-long today))]
+    (calendar/add-event! (first events))))
 
 (assert=
   '({:start 1652598028000,

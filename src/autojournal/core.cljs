@@ -52,19 +52,14 @@
          "food-count"   {:timeline-type :line
                          :timeline-args {:tooltip-key :image}}}))))
 
+; TODO use sheets/update-events! to also write this data to a google sheet.
 (defn ^:export update-lifelog []
   (let [days-to-update 5]
     (activitywatch/update-calendar! days-to-update)
     (mood/update-calendar! days-to-update)
     (journal5/update-calendar! days-to-update)
     (food/update-calendar! days-to-update)
-    #_(let [today (today)
-            yesterday (minus today (days 1))
-            events (location/get-events
-                     (to-long yesterday)
-                     (to-long today))]
-        (calendar/add-event! (first events))
-        (sheets/update-events! events))))
+    (location/update-calendar! 1)))
 
 
 (defn ^:export send-report-email
