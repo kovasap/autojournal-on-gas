@@ -55,13 +55,13 @@
 ; TODO use sheets/update-events! to also write this data to a google sheet.
 (defn ^:export update-lifelog []
   (let [days-to-update 1]
-    (activitywatch/update-calendar! days-to-update)
-    ; (mood/update-calendar! days-to-update)
-    (journal5/update-calendar! days-to-update)
-    (food/update-calendar! days-to-update)
-    ; TODO make it so that some locations are named, based on a google drive
-    ; spreadsheet with columns (lat, long, radius (size of place), name)
-    (location/update-calendar! days-to-update)))
+      (time (activitywatch/update-calendar! days-to-update))
+      ; (mood/update-calendar! days-to-update)
+      (time (journal5/update-calendar! days-to-update))
+      (time (food/update-calendar! days-to-update))
+      ; TODO make it so that some locations are named, based on a google drive
+      ; spreadsheet with columns (lat, long, radius (size of place), name)
+      (time (location/update-calendar! days-to-update))))
 
 
 (defn ^:export send-report-email

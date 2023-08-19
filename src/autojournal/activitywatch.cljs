@@ -184,7 +184,7 @@
 (defn update-calendar!
   [days]
   (doseq [export-filename export-filenames]
-    (let [all-entrys        (get-entries export-filename)
+    (let [all-entrys        (time (get-entries export-filename))
           recent-entries    (recent-items all-entrys days)
           entries-by-bucket (group-by :bucket recent-entries)]
       ; reverse is just here to make the android entries parse last

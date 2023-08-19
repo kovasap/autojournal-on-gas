@@ -69,7 +69,9 @@
                           (createEvent (:summary event)
                                        start-time
                                        end-time
-                                       (clj->js {:description
+                                       (clj->js {:location
+                                                 (:location event)
+                                                 :description
                                                  (:description event)}))))))}))
 
 (defn clean-events!

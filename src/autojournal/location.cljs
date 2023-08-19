@@ -248,6 +248,7 @@
      :lat (:lat midpoint)
      :lon (:lon midpoint)
      :speed-mph (-get-avg-speed readings)
+     :location (str (:lat midpoint) ", " (:lon midpoint))
      :summary (str "At " midpoint)}))
 
 
@@ -318,7 +319,7 @@
   [days-to-update]
   (let [today (t/today)
         yesterday (t/minus today (t/days days-to-update))
-        events (get-events (to-long yesterday) (to-long today))]
+        events (time (get-events (to-long yesterday) (to-long today)))]
     (calendar/add-event! (first events))))
 
 (assert=
