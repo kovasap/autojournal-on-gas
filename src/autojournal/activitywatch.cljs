@@ -73,28 +73,37 @@
                                (:raw-data entry1)
                                [(:raw-data entry1)])
                              (:raw-data entry2))}))
+
+(defn get-end-time-secs
+  [entry]
+  (+ (/ (to-long (:datetime entry)) 1000)
+     (:duration entry)))
   
 (defn condense-entries
   "Condense entries so that there are a manageable amount per day."
   ([entries] (condense-entries [] (first entries) (rest entries)))
   ([condensed-entries cur-entry remaining-entries]
-   (let [grown-cur-entry
-         (merge-entries cur-entry (first remaining-entries))]
-    (cond
-      (empty? remaining-entries)
-      (conj condensed-entries cur-entry)
-      (> (:duration grown-cur-entry) min-entry-size-secs)
-      ; Our current entry has reached max size
-      (condense-entries
-        (conj condensed-entries cur-entry)
-        (first remaining-entries)
-        (rest remaining-entries))
-      :else
-      ; Our current entry is still growing
-      (condense-entries
-        condensed-entries
-        grown-cur-entry
-        (rest remaining-entries))))))
+   (let [grown-cur-entry (merge-entries cur-entry (first remaining-entries))
+         next-entry-start-time-secs
+         (/ (to-long (:datetime (second remaining-entries))) 1000)]
+     (cond
+       (empty? remaining-entries)
+       ; Base case - done processing
+       (conj condensed-entries cur-entry)
+       (and (> (:duration grown-cur-entry) min-entry-size-secs)
+            (or (not next-entry-start-time-secs)
+                (> (+ 30 next-entry-start-time-secs)
+                   (get-end-time-secs grown-cur-entry))))
+       ; Our current entry has reached max size and the next entries are not
+       ; occuring right after this condensed one.
+       (condense-entries (conj condensed-entries cur-entry)
+                         (first remaining-entries)
+                         (rest remaining-entries))
+       :else
+       ; Our current entry is still growing
+       (condense-entries condensed-entries
+                         grown-cur-entry
+                         (rest remaining-entries))))))
   
 
 (condense-entries

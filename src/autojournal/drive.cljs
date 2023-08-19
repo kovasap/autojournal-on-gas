@@ -79,10 +79,10 @@
   file, make sure to call `first` or iterate to get your data!."
   [filename]
   (prn (str "Getting " filename))
-  (env-switch
-    {:node #(prn (str "get-files called with " filename))
-     :app-script #(reduce concat
-                          (map -get-file-contents (-get-files filename)))}))
+  (time (env-switch
+          {:node       #(prn (str "get-files called with " filename))
+           :app-script #(reduce concat
+                          (map -get-file-contents (-get-files filename)))})))
 
 (defn stringify-keys
   [m]
