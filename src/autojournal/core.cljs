@@ -54,7 +54,7 @@
 
 ; TODO use sheets/update-events! to also write this data to a google sheet.
 (defn ^:export update-lifelog []
-  (let [days-to-update 1]
+  (let [days-to-update 2]
       (time (activitywatch/update-calendar! days-to-update))
       ; (mood/update-calendar! days-to-update)
       (time (journal5/update-calendar! days-to-update))
