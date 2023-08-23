@@ -286,7 +286,6 @@
                      (reduce concat
                            (for [date (distinct dates)]
                              (drive/get-files (-date-to-file date)))))]
-    (prn (map -row-to-reading rows))
     (map -row-to-reading rows)))
 
 
@@ -320,9 +319,9 @@
 (defn update-calendar!
   [days-to-update]
   (let [today (t/today)
-        yesterday (t/minus today (t/days days-to-update))
-        events (time (get-events (to-long yesterday) (to-long today)))]
-    (calendar/add-event! (first events))))
+        start-day (t/minus today (t/days days-to-update))
+        events (time (get-events (to-long start-day) (to-long today)))]
+    (mapv calendar/add-event! events)))
 
 (assert=
   '({:start 1652598028000
