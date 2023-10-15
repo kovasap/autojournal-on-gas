@@ -77,12 +77,11 @@
       (food/report days-to-summarize)]]))
 
 
-(defn main [])
-
 (defn ^:dev/after-load refresh []
   (env-switch
     {:node
-      #(do (prn "Hot code Remount")
+      #(do (prn "Hot code Remount"))
            ; Check all malli function schemas
-           (dev/start! {:report (pretty/reporter)}))
+           ; TODO fix this and uncomment
+           ; (dev/start! {:report (pretty/reporter)}))
      :app-script #()}))

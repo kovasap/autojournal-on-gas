@@ -2,7 +2,10 @@
   (:require [autojournal.env-switching :refer [env-switch]]
             [autojournal.sheets :refer [sheet-to-maps]]
             [autojournal.testing-utils :refer [assert=]]
+            [cljs.nodejs :as nodejs]
             [clojure.string :refer [ends-with?]]))
+
+(def fs (nodejs/require "fs"))
 
 (defn -get-files
   [filename]
@@ -126,7 +129,9 @@
 (defn overwrite-file
   [filename content]
   (env-switch
-    {:node #(prn (str "write-file called with " filename "\n" content))
+    {:node #(do
+              (prn (str "Writing file to " filename))
+              (.writeFileSync fs filename content))
      :app-script (fn []
                    (trash-files filename)
                    (prn (str "writing " filename))
