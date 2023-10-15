@@ -5,6 +5,8 @@
 Autojournal is meant to be a personal information management tool that can aggregate data from many sources and then push it to visualization and analysis tools.
 It tries to do this as automatically as possible.
 
+This is useful to aid memory, and to help spot delayed consequences/effects of behavior and environment on mood and future behavior.
+
 See also https://kovasap.github.io/docs/lifelogging/what-and-why/.
 
 ## Data Collection Protocol
