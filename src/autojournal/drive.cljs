@@ -5,7 +5,9 @@
             [cljs.nodejs :as nodejs]
             [clojure.string :refer [ends-with?]]))
 
-(def fs (nodejs/require "fs"))
+(def fs 
+  (env-switch {:node #(nodejs/require "fs")
+               :app-script #()}))
 
 (defn -get-files
   [filename]
