@@ -7,7 +7,26 @@ It tries to do this as automatically as possible.
 
 See also https://kovasap.github.io/docs/lifelogging/what-and-why/.
 
-## Setup
+## Data Collection Protocol
+
+Throughout: wear CGM, make sure ActivityWatch is running on all platforms, and
+make sure GPS tracking is enabled.
+
+Upon waking up, log perceived sleep quality via mementodb.
+
+Whenever going to a bathroom throughout the day, log pee/poop and freeform
+emotions text via mementodb.
+
+When eating, take a picture of the food and log what it is via the custom food
+tracker built into autojournal using mementodb (still experimental).
+
+Every Saturday: Go through location data and create map from coordinates to
+locations (that are new) + cooresponding activities.
+
+
+## Technical Information
+
+### Setup
 
   1. `sudo npm install -g @google/clasp`
   1. `npm i shadow-cljs`
@@ -20,7 +39,7 @@ Go to project at https://script.google.com/home/my to run.
 
 See https://lambdaisland.com/blog/2016-10-01-clojurescript-and-google-apps-script for background details.
 
-## Deployment 
+### Deployment 
 
 Compile your ClojureScript and push it to your Apps Script project with this
 command:
@@ -29,7 +48,7 @@ command:
 ./build.joke
 ```
 
-## Development (Starting a REPL)
+### Development (Starting a REPL)
 
 In one terminal, run:
 
@@ -49,36 +68,32 @@ node dev-Code.js
 export FILENAME=vega.html; gdrive download query "name='$FILENAME' and trashed=false" --force; xdg-open $FILENAME
 ```
 
-## TODOs
+## Ingesting Data
 
- - Send emails with insights (perhaps with biomarker correlator links)
- - Use notification emails from services (e.g. GitHub) as a way to get data into
- the system
-
-## Food Tracking
+### Food Tracking
 
 Use https://github.com/jrmycanady/cronometer-export/pull/2/files to get food
 data.
 
-## Manual Tracking
+### Manual Tracking
 
 Use https://mementodatabase.com/ with a library like "Activity Journal.mlt2" in
 this repo.
 
-## Location Data
+### Location Data
 
 Download https://gpslogger.app/.
 Make sure in the settings it is set to log to csv format only (creating a zip
 file for each day), then set it up to write the files automatically to Google
 Drive.
 
-## ActivityWatch
+### ActivityWatch
 
-### Android
+#### Android
 
 Manually "export all buckets" in the android app, then use DriveSync to push the json file to Google Drive.
 
-### Linux
+#### Linux
 
 To run every hour, run `crontab -e` and add this snippet (assuming you cloned
 autojournal into your home directory ~/):
@@ -93,7 +108,7 @@ You may need to specify the path to your `bb` like this:
 0 * * * * /home/linuxbrew/.linuxbrew/bin/bb autojournal-on-gas/sync-activitywatch.clj &> awexport.log
 ```
 
-### Windows
+#### Windows
 
 1. Install [activitywatch for windows](https://activitywatch.net/) and have it run continuously
 2. Download sync-activitywatch.clj from this repo
@@ -103,3 +118,8 @@ You may need to specify the path to your `bb` like this:
 
 ![image](https://github.com/kovasap/autojournal-on-gas/assets/8763010/fc76b903-6095-425f-8f9d-a0b2a240b862)
 
+## TODOs
+
+ - Send emails with insights (perhaps with biomarker correlator links)
+ - Use notification emails from services (e.g. GitHub) as a way to get data into
+ the system
