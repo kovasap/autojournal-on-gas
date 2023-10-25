@@ -2,7 +2,7 @@
 
 ## Vision
 
-Autojournal is meant to be a personal information management tool that can aggregate data from many sources and then push it to visualization and analysis tools.
+Autojournal is meant to be a personal timeline information management tool that can aggregate data from many sources and then visualize/analyze it.
 It tries to do this as automatically as possible.
 
 This is useful to aid memory, and to help spot delayed consequences/effects of behavior and environment on mood and future behavior.
