@@ -3,7 +3,8 @@
             [autojournal.sheets :refer [sheet-to-maps]]
             [autojournal.testing-utils :refer [assert=]]
             [cljs.nodejs :as nodejs]
-            [clojure.string :refer [ends-with?]]))
+            [clojure.string :refer [ends-with?]]
+            [testdouble.cljs.csv :as csv]))
 
 (def fs 
   (env-switch {:node #(nodejs/require "fs")
@@ -44,10 +45,11 @@
 
 
 (defn -parse-csv
-  [blob]
-  (let [two-d-array (js->clj (.parseCsv js/Utilities
-                                        (.getDataAsString blob)))]
-    (-two-d-array-to-maps two-d-array)))
+  [s]
+  (-two-d-array-to-maps
+    (csv/read-csv s)))
+    ; This function is only available in Apps Script.
+    ; (js->clj (.parseCsv js/Utilities s))))
 
 (declare -get-blob-contents)
 
@@ -57,16 +59,20 @@
           (mapv -get-blob-contents
                 (.unzip js/Utilities zip-blob))))
 
+(defn -get-contents
+  [filename filedata]
+  (cond 
+    (ends-with? filename ".csv") [(-parse-csv filedata)]
+    (ends-with? filename ".json") [(js->clj (.parse js/JSON filedata)
+                                     :keywordize-keys true)]
+    :else [filedata]))
+  
+
 (defn -get-blob-contents
   [blob]
   (cond 
     (ends-with? (.getName blob) ".zip") (-get-zipped-files blob)
-    (ends-with? (.getName blob) ".csv") [(-parse-csv blob)]
-    (ends-with? (.getName blob) ".json") [(js->clj
-                                            (.parse js/JSON
-                                                    (.getDataAsString blob))
-                                            :keywordize-keys true)]
-    :else [(.getDataAsString blob)]))
+    :else (-get-contents (.getName blob) (.getDataAsString blob))))
 
 (defn -get-file-contents
   [file]
@@ -85,7 +91,11 @@
   [filename]
   (prn (str "Getting " filename))
   (time (env-switch
-          {:node       #(prn (str "get-files called with " filename))
+          {:node       #(-get-contents filename
+                                       (try
+                                         (.readFileSync fs filename)
+                                         (catch js/Error e
+                                           (prn e))))
            :app-script #(reduce concat
                           (map -get-file-contents (-get-files filename)))})))
 

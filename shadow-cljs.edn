@@ -6,6 +6,7 @@
                 [com.github.jpmonettas/flow-storm-inst "RELEASE"]
                 [hashp "0.2.2"]
                 [clj-fuzzy "0.4.1"]
+                [testdouble/clojurescript.csv "0.8.0"]
                 [philoskim/debux "0.8.2"]
                 [inflections "0.14.1"]]
 
