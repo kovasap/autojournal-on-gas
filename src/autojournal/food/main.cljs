@@ -31,7 +31,8 @@
 (defn get-meals
   "Filter function takes in a seq of meals and returns a subset."
   [filter-fn]
-  (filter-fn (map row->meal (first (drive/get-files food-sheet-name)))))
+  (filter-fn (remove nil?
+               (map row->meal (first (drive/get-files food-sheet-name))))))
 
 (defn get-recent-meals-with-db-data
   [days]

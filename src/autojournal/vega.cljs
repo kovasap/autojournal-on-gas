@@ -35,8 +35,7 @@
   {:gantt
    ; https://vega.github.io/vega-lite/examples/bar_gantt.html
    ; https://vega.github.io/vega-lite/examples/layer_bar_labels_grey.html
-   (fn
-     [field _]
+   (fn [field _]
      {:encoding {:y field :type "ordinal"}
       :layer    [{:mark     {:type "bar" :color "#ddd"}
                   :encoding {:x  {:field "start" :type "temporal"}
@@ -44,17 +43,39 @@
                  {:mark     {:type "text" :align "left" :dx 5}
                   :encoding {:text {:field field}}}]})
    :line
-   (fn [field {:keys [tooltip-key]}]
-     {:mark      {:type "line" :tooltip true :point (boolean tooltip-key)}
-      :encoding  (merge {:x {:field "start" :type "temporal"}
-                         :y {:field field :type "quantitative"}} (if (nil? tooltip-key)
-                                                                  {}
-                                                                  {:tooltip [{:field (name tooltip-key)}]}))})
+   (fn [field {:keys [tooltip-key label-key]}]
+     {:layer (into []
+                   (remove nil?
+                     [(if label-key
+                        {:mark      {:type     "text"
+                                     :align    "left"
+                                     :baseline "middle"
+                                     :dx       5}
+                         :selection {:x_scroll_label {:type      "interval"
+                                                      :bind      "scales"
+                                                      :encodings ["x"]}}
+                         :encoding  {:x    {:field "start" :type "temporal"}
+                                     :y    {:field field :type "quantitative"}
+                                     :text {:field (name label-key)}}}
+                        nil)
+                      {:mark      {:type "line"}
+                       :tooltip   true
+                       :point     (boolean tooltip-key)
+                       :selection {:x_scroll {:type      "interval"
+                                              :bind      "scales"
+                                              :encodings ["x"]}}
+                       :encoding  (merge
+                                    {:x {:field "start" :type "temporal"}
+                                     :y {:field field :type "quantitative"}}
+                                    (if (nil? tooltip-key)
+                                      ""
+                                      {:tooltip [{:field
+                                                  (name tooltip-key)}]}))}]))})
    :ordinal-line
    (fn [field {:keys [sort-order]}]
-     {:mark      {:type "line" :tooltip true}
-      :encoding  {:x {:field "start" :type "temporal"}
-                  :y {:field field :type "ordinal" :sort sort-order}}})})
+     {:mark     {:type "line" :tooltip true}
+      :encoding {:x {:field "start" :type "temporal"}
+                 :y {:field field :type "ordinal" :sort sort-order}}})})
 
 (defn plot-events-on-timeline
   "Returns vega-data."
@@ -69,10 +90,7 @@
                       (for [[field {:keys [timeline-type timeline-args]}]
                             fields-to-plot]
                         (merge {:width     1000
-                                :height    400
-                                :selection {:x_scroll {:type      "interval"
-                                                       :bind      "scales"
-                                                       :encodings ["x"]}}}
+                                :height    400}
                                ((timeline-type timeline-plot-types)
                                 field
                                 timeline-args))))
@@ -116,8 +134,8 @@
 (defn vega-chart
   [vega-data]
   (let [chart-name (:description vega-data)]
-    ; 2 in stringify call means pretty print with spacing of 2
-    (str "<div id='"chart-name"'></div>
+         ; 2 in stringify call means pretty print with spacing of 2
+     (str "<div id='"chart-name"'></div>
      <script type='text/javascript'>
       vegaEmbed('#"chart-name"', "(.stringify js/JSON (clj->js vega-data) 2)");
      </script>")))

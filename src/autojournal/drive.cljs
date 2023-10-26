@@ -46,8 +46,7 @@
 
 (defn -parse-csv
   [s]
-  (-two-d-array-to-maps
-    (csv/read-csv s)))
+  (-two-d-array-to-maps (csv/read-csv s)))
     ; This function is only available in Apps Script.
     ; (js->clj (.parseCsv js/Utilities s))))
 
@@ -93,7 +92,7 @@
   (time (env-switch
           {:node       #(-get-contents filename
                                        (try
-                                         (.readFileSync fs filename)
+                                         (.readFileSync fs filename "utf8")
                                          (catch js/Error e
                                            (prn e))))
            :app-script #(reduce concat

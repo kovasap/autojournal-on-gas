@@ -1,5 +1,6 @@
 (ns autojournal.food.common
   (:require [inflections.core :refer [singular]]
+            [autojournal.env-switching :refer [env-switch]]
             [clojure.string
              :as
              st
@@ -10,7 +11,9 @@
 ; TODO Make this reference a sheet name
 (def nutrient-targets-sheet-id
   "1bz_n3VlnejYkCr1uaieYFir3ajvyP4IVva6tOvW1nhI")
-(def food-sheet-name "Food")
+(def food-sheet-name
+  (env-switch {:app_script #(identity "Food")
+               :node       #(identity "Food.csv")}))
 (def food-db-sheet-name "Food Database")
 (def cronometer-export-filename
   "cronometer.csv")

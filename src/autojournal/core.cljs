@@ -39,18 +39,19 @@
   []
   (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
         journal-data (journal5/get-events)
-        food-data    (food/get-last-meal-events 200)]
+        food-data    (food/get-last-meal-events 1000)]
     (write-vega-page
       "vega.html"
       (make-all-event-plots
         (concat cgm-data journal-data food-data)
-        {"glucose" {:timeline-type :line :aggregation "mean"}
-         "valence" {:timeline-type :ordinal-line
-                    :timeline-args {:sort-order
-                                    ["Meh" "OK" "Good" "Great" "Amazing"]}
-                    :aggregation   "count"}
-         "food-count"   {:timeline-type :line
-                         :timeline-args {:tooltip-key :image}}}))))
+        {"glucose"    {:timeline-type :line :aggregation "mean"}
+         ; "valence" {:timeline-type :ordinal-line
+         ;            :timeline-args {:sort-order
+         ;                            ["Meh" "OK" "Good" "Great" "Amazing"]}
+         ;            :aggregation   "count"}
+         "food-count" {:timeline-type :line
+                       :timeline-args {:tooltip-key :image
+                                       :label-key   :food-str}}}))))
 
 ; TODO use sheets/update-events! to also write this data to a google sheet.
 (defn ^:export update-lifelog []

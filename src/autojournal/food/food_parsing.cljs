@@ -4,7 +4,8 @@
             [autojournal.food.common :refer [units-map Meal Food singular-fixed]]
             [cljs-time.core :refer [plus minutes to-default-time-zone
                                     from-default-time-zone to-utc-time-zone]]
-            [cljs-time.coerce :refer [to-long from-date]]
+            [cljs-time.coerce :refer [to-long from-date from-string]]
+            [cljs-time.format :refer [parse formatter]]
             [cljs.pprint :refer [pprint]]
             [clojure.set :refer [union]]
             [clojure.string :as st
@@ -138,14 +139,24 @@
 (defn row->meal
   {:malli/schema [:=> [:cat [:map-of :keyword :string]] Meal]}
   [row]
-  (let [foods (parse-foods (:Foods row))]
-    {:datetime   (:Timestamp row)
-     :foods      foods
-     :food-count (count foods)
-     :oil        ((keyword "Oil Amount") row)
-     ; image is a special key that is recognized by vega-lite plotting for
-     ; tooltips https://vega.github.io/vega-lite/docs/tooltip.html#tooltip-image
-     :image    (:Picture.http row)}))
+  ; TODO Come up with better holistic way to handle bad data
+  (if (= (:Timestamp row) "")
+    nil
+    (let [foods (parse-foods (:Foods row))]
+      {:datetime   (if (string? (:Timestamp row))
+                     (try (parse (formatter "MM/dd/yyyy HH:mm:ss")
+                                 (:Timestamp row))
+                          (catch js/Error e
+                            (prn "error " e " from parsing " row)))
+                     (:Timestamp row))
+       :foods      foods
+       :food-str   (:Foods row)
+       :food-count (count foods)
+       :oil        ((keyword "Oil Amount") row)
+       ; image is a special key that is recognized by vega-lite plotting for
+       ; tooltips
+       ; https://vega.github.io/vega-lite/docs/tooltip.html#tooltip-image
+       :image      (:Picture.http row)})))
 
 ; Will probably need to roundtrip through strings to get daylight savings time
 ; right.
