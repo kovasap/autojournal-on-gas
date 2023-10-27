@@ -141,9 +141,23 @@
       vegaEmbed('#"chart-name"', "(.stringify js/JSON (clj->js vega-data) 2)");
      </script>")))
 
+; not yet tested
+(defn vega-chart-hiccup
+  [vega-data]
+  (let [chart-name (:description vega-data)]
+    [:div
+     [:div {:id chart-name}]
+     [:script {:type "text/javascript"}
+      (str "vegaEmbed('#"
+           chart-name
+           "', "
+           ; 2 in stringify call means pretty print with spacing of 2
+           (.stringify js/JSON (clj->js vega-data) 2)
+           ");")]]))
+
 (defn vega-page
   "See https://vega.github.io/vega-lite/usage/embed.html"
-  [vega-charts]
+  [body]
   (str "<!DOCTYPE html>
 <html>
   <head>
@@ -162,11 +176,12 @@
     </style>
   </head>
   <body>
-  " (st/join "\n" vega-charts) "
+  " body "
   </body>
 </html>
   "))
 
 (defn write-vega-page
   [filename vega-datas]
-  (overwrite-file filename (vega-page (map vega-chart vega-datas))))
+  (overwrite-file filename
+                  (vega-page (st/join "\n" (map vega-chart vega-datas)))))
