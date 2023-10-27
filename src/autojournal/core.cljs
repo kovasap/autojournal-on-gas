@@ -37,7 +37,9 @@
 
 (defn ^:export write-report
   []
-  (let [cgm-data     (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv")
+  (let [cgm-data     (remove
+                       #(js/Number.isNaN (:glucose %))
+                       (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv"))
         journal-data (journal5/get-events)
         food-data    (food/get-last-meal-events 1000)]
     (write-vega-page

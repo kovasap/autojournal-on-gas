@@ -58,7 +58,8 @@
                                      :y    {:field field :type "quantitative"}
                                      :text {:field (name label-key)}}}
                         nil)
-                      {:mark      {:type "line"}
+                      {:mark      {:type "line"
+                                   :interpolate "monotone"}
                        :tooltip   true
                        :point     (boolean tooltip-key)
                        :selection {:x_scroll {:type      "interval"
