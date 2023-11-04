@@ -1,5 +1,6 @@
 (ns autojournal.vega
   (:require [autojournal.drive :refer [overwrite-file]]
+            [hiccups.runtime :refer [render-html]]
             [clojure.string :as st]))
   ; (:require ["vega" :as vega]))
 
@@ -31,6 +32,7 @@
 
 
 
+; TODO add a chart like https://vega.github.io/vega/examples/timelines/
 (def timeline-plot-types
   {:gantt
    ; https://vega.github.io/vega-lite/examples/bar_gantt.html
@@ -155,9 +157,9 @@
            (.stringify js/JSON (clj->js vega-data) 2)
            ");")]]))
 
-(defn vega-page
+(defn make-vega-html
   "See https://vega.github.io/vega-lite/usage/embed.html"
-  [body]
+  [body-hiccup]
   (str "<!DOCTYPE html>
 <html>
   <head>
@@ -176,7 +178,7 @@
     </style>
   </head>
   <body>
-  " body "
+  " (render-html body-hiccup) "
   </body>
 </html>
   "))
@@ -184,4 +186,5 @@
 (defn write-vega-page
   [filename vega-datas]
   (overwrite-file filename
-                  (vega-page (st/join "\n" (map vega-chart vega-datas)))))
+                  (make-vega-html (into [:div]
+                                        (map vega-chart-hiccup vega-datas)))))
