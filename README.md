@@ -1,5 +1,7 @@
 # Autojournal Running on Google Apps Script (GAS)
 
+The successor to https://github.com/kovasap/autojournal.
+
 ## Vision
 
 Autojournal is meant to be a personal timeline information management tool that can aggregate data from many sources and then visualize/analyze it.
