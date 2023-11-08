@@ -51,7 +51,7 @@
          ;            :timeline-args {:sort-order
          ;                            ["Meh" "OK" "Good" "Great" "Amazing"]}
          ;            :aggregation   "count"}
-         "food-count" {:timeline-type :line
+         "food-count" {:timeline-type :gantt
                        :timeline-args {:tooltip-key :image
                                        :label-key   :food-str}}}))))
 

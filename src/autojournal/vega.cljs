@@ -31,54 +31,65 @@
                     :y {:field "b", :type "quantitative"}}})
 
 
+(defn add-label-text-mark
+  [marks label-key field]
+  (if label-key
+    (conj marks
+          {:mark      {:type "text" :align "left" :baseline "middle" :dx 5}
+           :selection {:x_scroll_label {:type      "interval"
+                                        :bind      "scales"
+                                        :encodings ["x"]}}
+           :encoding  {:x    {:field "start" :type "temporal"}
+                       :y    {:field field :type "quantitative"}
+                       :text {:field (name label-key)}}})
+    marks))
+
+(defn add-tooltip
+  [encoding tooltip-key]
+  (if tooltip-key
+    (assoc encoding :tooltip [{:field (name tooltip-key)}])
+    encoding))
+
 
 ; TODO add a chart like https://vega.github.io/vega/examples/timelines/
 (def timeline-plot-types
   {:gantt
    ; https://vega.github.io/vega-lite/examples/bar_gantt.html
    ; https://vega.github.io/vega-lite/examples/layer_bar_labels_grey.html
-   (fn [field _]
-     {:encoding {:y field :type "ordinal"}
-      :layer    [{:mark     {:type "bar" :color "#ddd"}
-                  :encoding {:x  {:field "start" :type "temporal"}
-                             :x2 {:field "end" :type "temporal"}}}
-                 {:mark     {:type "text" :align "left" :dx 5}
-                  :encoding {:text {:field field}}}]})
-   :line
    (fn [field {:keys [tooltip-key label-key]}]
-     {:layer (into []
-                   (remove nil?
-                     [(if label-key
-                        {:mark      {:type     "text"
-                                     :align    "left"
-                                     :baseline "middle"
-                                     :dx       5}
-                         :selection {:x_scroll_label {:type      "interval"
+     {:encoding {:y {:field field :type "ordinal"}}
+      :layer    (add-label-text-mark
+                  [{:mark     {:type "bar" :color "#ddd"}
+                    :encoding (add-tooltip {:x  {:field "start"
+                                                 :type  "temporal"}
+                                            :x2 {:field "end"
+                                                 :type  "temporal"}}
+                                           tooltip-key)}]
+                  label-key
+                  field)})
+   :line         (fn [field {:keys [tooltip-key label-key]}]
+                   {:layer (add-label-text-mark
+                             [{:mark      {:type        "line"
+                                           :interpolate "monotone"}
+                               :tooltip   true
+                               :point     (boolean tooltip-key)
+                               :selection {:x_scroll {:type      "interval"
                                                       :bind      "scales"
                                                       :encodings ["x"]}}
-                         :encoding  {:x    {:field "start" :type "temporal"}
-                                     :y    {:field field :type "quantitative"}
-                                     :text {:field (name label-key)}}}
-                        nil)
-                      {:mark      {:type "line"
-                                   :interpolate "monotone"}
-                       :tooltip   true
-                       :point     (boolean tooltip-key)
-                       :selection {:x_scroll {:type      "interval"
-                                              :bind      "scales"
-                                              :encodings ["x"]}}
-                       :encoding  (merge
-                                    {:x {:field "start" :type "temporal"}
-                                     :y {:field field :type "quantitative"}}
-                                    (if (nil? tooltip-key)
-                                      ""
-                                      {:tooltip [{:field
-                                                  (name tooltip-key)}]}))}]))})
-   :ordinal-line
-   (fn [field {:keys [sort-order]}]
-     {:mark     {:type "line" :tooltip true}
-      :encoding {:x {:field "start" :type "temporal"}
-                 :y {:field field :type "ordinal" :sort sort-order}}})})
+                               :encoding  (add-tooltip
+                                            {:x {:field "start"
+                                                 :type  "temporal"}
+                                             :y {:field field
+                                                 :type  "quantitative"}}
+                                            tooltip-key)}]
+                             label-key
+                             field)})
+   :ordinal-line (fn [field {:keys [sort-order]}]
+                   {:mark     {:type "line" :tooltip true}
+                    :encoding {:x {:field "start" :type "temporal"}
+                               :y {:field field
+                                   :type  "ordinal"
+                                   :sort  sort-order}}})})
 
 (defn plot-events-on-timeline
   "Returns vega-data."
@@ -134,16 +145,6 @@
    (plot-events-grouped-by-hour events fields-to-plot)])
   
        
-(defn vega-chart
-  [vega-data]
-  (let [chart-name (:description vega-data)]
-         ; 2 in stringify call means pretty print with spacing of 2
-     (str "<div id='"chart-name"'></div>
-     <script type='text/javascript'>
-      vegaEmbed('#"chart-name"', "(.stringify js/JSON (clj->js vega-data) 2)");
-     </script>")))
-
-; not yet tested
 (defn vega-chart-hiccup
   [vega-data]
   (let [chart-name (:description vega-data)]
@@ -154,7 +155,8 @@
            chart-name
            "', "
            ; 2 in stringify call means pretty print with spacing of 2
-           (.stringify js/JSON (clj->js vega-data) 2)
+           (doto (.stringify js/JSON (clj->js vega-data) nil 2)
+             (#(overwrite-file (str chart-name "-vega-lite-raw.json") %)))
            ");")]]))
 
 (defn make-vega-html
