@@ -11,6 +11,23 @@ This is useful to aid memory, and to help spot delayed consequences/effects of b
 
 See also https://kovasap.github.io/docs/lifelogging/what-and-why/.
 
+### "The Paths We Walk"
+
+Visually, autojournal could be used to generate a widely zoomable life timeline.
+This timeline could be zoomed out to view from birth to present day, or zoomed
+in all the way to a daily resolution.
+
+To facilitate this, events in the underlying data would need to be tagged with a
+"significance" level to dictate what is filtered out when zooming out all the
+way.
+Additionally, recurring events should be grouped together; this would give a
+view like "in 2021, I went climbing on average twice a week".
+
+The fully zoomed out timeline (or the entire timeline) would be a target for
+sharing, either on social media or in a database somewhere.
+It would be interesting to view a sampling of how people live their lives this
+way.
+
 ## Data Collection Protocol
 
 Throughout: wear CGM, make sure ActivityWatch is running on all platforms, and
