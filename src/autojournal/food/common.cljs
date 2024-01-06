@@ -12,7 +12,7 @@
 (def nutrient-targets-sheet-id
   "1bz_n3VlnejYkCr1uaieYFir3ajvyP4IVva6tOvW1nhI")
 (def food-sheet-name
-  (env-switch {:app_script #(identity "Food")
+  (env-switch {:app-script #(identity "Food")
                :node       #(identity "Food.csv")}))
 (def food-db-sheet-name "Food Database")
 (def cronometer-export-filename

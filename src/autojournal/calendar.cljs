@@ -14,7 +14,9 @@
 
 (defn get-calendar-name
   [event]
-  (cond (contains? event :lat)        "Locations and Travel"
+  (cond 
+        (contains? event :calendar)        (:calendar event)
+        (contains? event :lat)        "Locations and Travel"
         (contains? event :foods)      "Food"
         (contains? event :activities) "Mood"
         (contains? event :activity)   "Journal"
@@ -61,18 +63,25 @@
      :app-script (fn []
                    (let [calendar (get-calendar event)
                          [start-time end-time] (get-js-start-end-times event)]
-                     (prn "Adding "       (:summary event)
-                          " to calendar " (get-calendar-name event))
-                     (when (not (nil? calendar))
-                       (delete-duplicate-event! event)
-                       (. calendar
-                          (createEvent (:summary event)
-                                       start-time
-                                       end-time
-                                       (clj->js {:location
-                                                 (:location event)
-                                                 :description
-                                                 (:description event)}))))))}))
+                     (if (and (not (nil? calendar))
+                              (not (nil? event))
+                              (> (count event) 0))
+                       (do (prn "Adding "       (:summary event)
+                                " to calendar " (get-calendar-name event))
+                           (try
+                            (delete-duplicate-event! event)
+                            (. calendar
+                               (createEvent (:summary event)
+                                          start-time
+                                          end-time
+                                          (clj->js
+                                            {:location    (:location event)
+                                             :description (:description
+                                                            event)})))
+                            (catch :default e
+                              (prn "ERROR: " e))))
+                       (prn "Cound not add " event
+                            " to calendar "  (get-calendar-name event)))))}))
 
 (defn clean-events!
   [days]

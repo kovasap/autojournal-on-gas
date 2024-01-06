@@ -2,12 +2,13 @@
   (:require [autojournal.env-switching :refer [env-switch]]
             [autojournal.sheets :refer [sheet-to-maps]]
             [autojournal.testing-utils :refer [assert=]]
-            [cljs.nodejs :as nodejs]
+            ; https://clojurians.slack.com/archives/C03S1L9DN/p1704566152549829
+            ; [cljs.nodejs :as nodejs]
             [clojure.string :refer [ends-with?]]
             [testdouble.cljs.csv :as csv]))
 
 (def fs 
-  (env-switch {:node #(nodejs/require "fs")
+  (env-switch {:node #() ; #(nodejs/require "fs")
                :app-script #()}))
 
 (defn -get-files

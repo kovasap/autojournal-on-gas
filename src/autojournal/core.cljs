@@ -11,7 +11,7 @@
             [autojournal.food.main :as food]
             [autojournal.drive :as drive]
             [autojournal.mood :as mood]
-            [autojournal.journal5 :as journal5 :refer [Entry]]
+            [autojournal.daily-lifelog :as daily-lifelog :refer [Entry]]
             [autojournal.food-and-journal :as food-and-journal]
             [autojournal.food.common :refer [Meal NutrientName Food]]
             [autojournal.food.report-email :refer [PercentOfTarget]]
@@ -40,7 +40,7 @@
   (let [cgm-data     (remove
                        #(js/Number.isNaN (:glucose %))
                        (cgm/get-data "KovasPalunas_glucose_4-21-2021.csv"))
-        journal-data (journal5/get-events)
+        journal-data (daily-lifelog/get-events)
         food-data    (food/get-last-meal-events 1000)]
     (write-vega-page
       "vega.html"
@@ -58,9 +58,9 @@
 ; TODO use sheets/update-events! to also write this data to a google sheet.
 (defn ^:export update-lifelog []
   (let [days-to-update 2]
+      (time (daily-lifelog/update-calendar! days-to-update))
       (time (activitywatch/update-calendar! days-to-update))
       ; (mood/update-calendar! days-to-update)
-      (time (journal5/update-calendar! days-to-update))
       (time (food/update-calendar! days-to-update))
       ; TODO make it so that some locations are named, based on a google drive
       ; spreadsheet with columns (lat, long, radius (size of place), name)
@@ -75,7 +75,7 @@
      [:head]
      [:body
       (food-and-journal/group-meals days-to-summarize)
-      (journal5/report days-to-summarize)
+      (daily-lifelog/report days-to-summarize)
       (sleep/report days-to-summarize)
       (food/report days-to-summarize)]]))
 
