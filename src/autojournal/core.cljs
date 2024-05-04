@@ -74,10 +74,10 @@
     [:html
      [:head]
      [:body
-      (food-and-journal/group-meals days-to-summarize)
+      ; (food-and-journal/group-meals days-to-summarize)
+      ; (food/report days-to-summarize)]]))
       (daily-lifelog/report days-to-summarize)
-      (sleep/report days-to-summarize)
-      (food/report days-to-summarize)]]))
+      (sleep/report days-to-summarize)]]))
 
 
 (defn ^:dev/after-load refresh []

@@ -4,7 +4,12 @@
             [autojournal.testing-utils :refer [assert=]]
             [autojournal.calendar :as calendar]
             [cljs-time.core :as t]
+            [clojure.string :as st]
             [cljs-time.coerce :refer [to-long from-long to-string from-string]]))
+
+; This spreadsheet should have columns "lat" "lon" and "name"
+(def -location-names-google-sheet-name
+  "Location Names")
   
 (def -stationary-distance-miles
   "Distance between two readings for movement between them to be ignored."
@@ -235,12 +240,25 @@
      {:time 1652598282000, :lat 48.66866565, :lon -122.31445328, 
       :accuracy-miles 0.0093255620316403}]))
 
+(defn -name-location
+  [{location-lat :lat location-lon :lon} location-names]
+  (st/join
+    ","
+    (->> location-names
+         (filter
+           (fn [[{:keys [lat lon]} _]]
+             (-are-same-place
+               {:lat lat :lon lon :accuracy-miles 0.1}
+               {:lat location-lat :lon location-lon :accuracy-miles 0.1})))
+         (vals))))
+                 
+
 (defn -readings-to-event
   "Converts a bunch of readings to a single event. Assumes the readings
   happened in the same place."
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   Event]}
-  [readings]
+  [readings location-names]
   (let [midpoint (-get-midpoint readings)
         coords-str (str (:lat midpoint) ", " (:lon midpoint))]
     {:start (:time (first readings))
@@ -251,7 +269,7 @@
      :speed-mph (-get-avg-speed readings)
      :description (str midpoint)
      :location coords-str
-     :summary (str "At " coords-str)}))
+     :summary (str "At " (-name-location midpoint location-names))}))
 
 
 (defn -readings-to-events
@@ -259,12 +277,12 @@
   readings in the same location, or that occured during a single travel."
   {:malli/schema [:=> [:cat [:sequential Reading]]
                   [:sequential Event]]}
-  [readings]
+  [readings location-names]
   (if (empty? readings)
     []
     (let [[start others] (-split-readings readings)]
-      (concat [(-readings-to-event start)]
-              (-readings-to-events others)))))
+      (concat [(-readings-to-event start location-names)]
+              (-readings-to-events others location-names)))))
 
 (defn -pad-date-zeros
   {:malli/schema [:=> [:cat :int] :string]}
@@ -288,6 +306,18 @@
                              (drive/get-files (-date-to-file date)))))]
     (map -row-to-reading rows)))
 
+(defn map-vals [m f]
+  (into {} (for [[k v] m] [k (f v)])))
+
+(defn -get-location-names-from-drive
+  []
+  (->> (drive/get-files -location-names-google-sheet-name)
+       (reduce concat)
+       (map (fn [{:keys [lat lon name]}]
+              {:coordinates {:lat lat :lon lon}
+               :name name}))
+       (group-by :coordinates)
+       (map-vals :name)))
 
 (defn -datetime-to-date
   [datetime]
@@ -314,7 +344,8 @@
   [start-time end-time]
   (-readings-to-events
     (-get-readings-from-drive
-       (-dates-in-time-window start-time end-time))))
+       (-dates-in-time-window start-time end-time))
+    (-get-location-names-from-drive)))
 
 (defn update-calendar!
   [days-to-update]
@@ -664,5 +695,5 @@
                         {:time 1652601079000
                          :lat  47.66863877
                          :lon  -122.31444558
-                         :accuracy-miles 0.00466278101582015}]))
+                         :accuracy-miles 0.00466278101582015}] {}))
        

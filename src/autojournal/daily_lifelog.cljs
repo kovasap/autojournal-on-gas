@@ -1,6 +1,6 @@
 (ns autojournal.daily-lifelog
   (:require [autojournal.testing-utils :refer [assert=]]
-            [autojournal.time :refer [JsDate recent-items]]
+            [autojournal.time :refer [JsDate recent-items get-day-str]]
             [autojournal.html-utils :refer [Hiccup make-table]]
             [autojournal.drive :as drive]
             [autojournal.calendar :as calendar]
@@ -102,6 +102,21 @@
 (def table-keys [:valence :importance :experience :tags])
 
 
+  
+
+(defn make-bullet-summary
+  [entries]
+  (into [:ul]
+        (for [[day-str events] (group-by #(get-day-str (:datetime %)) entries)]
+          [:li
+           day-str
+           ": "
+           (st/join ".  "
+                    (->> events
+                         (sort-by :datetime)
+                         (filter #(not (contains? (:tags %) "sleep")))
+                         (map :experience)))])))
+
 (defn report
   "Generates a hiccup summary of recent entries"
   {:malli/schema [:=> [:cat :int] Hiccup]}
@@ -109,6 +124,7 @@
   (let [entries (get-recent-entries days-to-summarize)]
     [:div
      [:h1 "Last " days-to-summarize " Day Mood Summary"]
+     (make-bullet-summary entries)
      (make-entry-table entries table-keys)]))
 
 

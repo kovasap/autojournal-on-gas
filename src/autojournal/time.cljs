@@ -1,4 +1,6 @@
-(ns autojournal.time)
+(ns autojournal.time
+  (:require
+    [cljs-time.format :refer [unparse formatter]]))
 
 (defn days-between
   [date1 date2]
@@ -15,3 +17,7 @@
   (let [today (js/Date.)]
     (filter #(< (days-between (:datetime %) today) days)
             data)))
+
+(defn get-day-str
+  [datetime]
+  (unparse (formatter "MM/dd") datetime))
