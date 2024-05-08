@@ -98,24 +98,23 @@
                        (for [entry entries]
                          (map #(% entry) columns)))))))
 
-
 (def table-keys [:valence :importance :experience :tags])
 
-
-  
-
-(defn make-bullet-summary
+(defn entries->sentence-summaries-by–day
   [entries]
-  (into [:ul]
-        (for [[day-str events] (group-by #(get-day-str (:datetime %)) entries)]
-          [:li
-           day-str
-           ": "
+  (into {}
+        (for [[day-str daily-entries] (group-by #(get-day-str (:datetime %))
+                                                entries)]
+          [day-str
            (st/join ".  "
-                    (->> events
+                    (->> daily-entries
                          (sort-by :datetime)
-                         (filter #(not (contains? (:tags %) "sleep")))
+                         ; (filter #(not (contains? (:tags %) "sleep")))
                          (map :experience)))])))
+
+(defn make-all-sentence-summaries-by–day
+  []
+  (entries->sentence-summaries-by–day (get-all-entries)))
 
 (defn report
   "Generates a hiccup summary of recent entries"
@@ -124,7 +123,6 @@
   (let [entries (get-recent-entries days-to-summarize)]
     [:div
      [:h1 "Last " days-to-summarize " Day Mood Summary"]
-     (make-bullet-summary entries)
      (make-entry-table entries table-keys)]))
 
 

@@ -306,7 +306,7 @@
                              (drive/get-files (-date-to-file date)))))]
     (map -row-to-reading rows)))
 
-(defn map-vals [m f]
+(defn map-vals [f m]
   (into {} (for [[k v] m] [k (f v)])))
 
 (defn -get-location-names-from-drive

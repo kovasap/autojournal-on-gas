@@ -76,9 +76,30 @@
      [:body
       ; (food-and-journal/group-meals days-to-summarize)
       ; (food/report days-to-summarize)]]))
+      "Check out https://kovasap.github.io/docs/lifestyle-optimizations/daily-physiological-tricks/. "
+      [:br]
       (daily-lifelog/report days-to-summarize)
       (sleep/report days-to-summarize)]]))
 
+(defn ^:export send-lifelog-email
+  {:malli/schema [:=> [:cat :int] Hiccup]}
+  [days-to-summarize]
+  (let [sentence-summaries
+        (merge-with str
+                    (daily-lifelog/make-all-sentence-summaries-by–day)
+                    (activitywatch/make-recent-sentence-summaries-by-day
+                      days-to-summarize)
+                    #_(location/make-sentence-summaries days-to-summarize))]
+    (gmail/send-self-mail
+      "Lifelog"
+      [:html
+       [:head]
+       [:body
+        "Check out https://kovasap.github.io/docs/lifestyle-optimizations/daily-physiological-tricks/. "
+        [:br]
+        (into [:ul]
+              (for [[day-str sentences] sentence-summaries]
+                [:li [:strong day-str] ": " sentences]))]])))
 
 (defn ^:dev/after-load refresh []
   (env-switch

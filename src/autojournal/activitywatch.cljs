@@ -1,8 +1,8 @@
 (ns autojournal.activitywatch
   (:require [autojournal.drive :as drive]
-            [autojournal.time :refer [recent-items]]
+            [autojournal.time :refer [recent-items get-day-str]]
             [autojournal.calendar :as calendar]
-            [clojure.string :refer [join split]]
+            [clojure.string :as st]
             [cljs-time.core :refer [plus minutes]]
             [cljs-time.coerce :refer [to-long from-date from-string]]
             [cljs.pprint :refer [pprint]]
@@ -22,7 +22,7 @@
   [{:keys [timestamp duration] {:keys [app title]} :data :as aw-event}
    aw-bucket-name]
   ; Remove the end of timestamps like "2023-07-07T00:27:28.387000+00:00"
-  {:datetime (from-string (first (split timestamp #"\.")))
+  {:datetime (from-string (first (st/split timestamp #"\.")))
    :duration duration
    :app-name app
    :title title
@@ -105,7 +105,6 @@
                          grown-cur-entry
                          (rest remaining-entries))))))
   
-
 (condense-entries
   (parse-entries
     [{:buckets
@@ -174,7 +173,7 @@
 
 (defn app-set->str
   [app-set]
-  (join ", " (filter #(not (contains? app-names-to-hide %)) app-set)))
+  (st/join ", " (filter #(not (contains? app-names-to-hide %)) app-set)))
 
 (defn entry->event
   [{:keys [datetime duration app-name bucket raw-data] :as event}]
@@ -190,17 +189,44 @@
                         :else           app-name)
      :description (with-out-str (pprint event))}))
 
+(defn map-vals [f m]
+  (into {} (for [[k v] m] [k (f v)])))
+
+(defn get-recent-condensed-entries-by-bucket
+  [days]
+  (as-> export-filenames x
+       (time (get-entries x))
+       (reduce concat x)
+       (recent-items x days)
+       (group-by :bucket x)
+       (map-vals condense-entries x)))
+       
+
 (defn update-calendar!
   [days]
-  (doseq [export-filename export-filenames]
-    (let [all-entrys        (time (get-entries export-filename))
-          recent-entries    (recent-items all-entrys days)
-          entries-by-bucket (group-by :bucket recent-entries)]
-      ; reverse is just here to make the android entries parse last
-      (doall (for [[bucket entries] (reverse entries-by-bucket)
-                   :let [condensed-entries (condense-entries entries)]]
-               (do (prn "Processed "  (count all-entrys)
-                        " uploading " (count condensed-entries)
-                        " condensed entries for bucket " bucket)
-                   (mapv calendar/add-event!
-                     (map entry->event condensed-entries))))))))
+  ; reverse is just here to make the android entries parse last
+  (doall (for [[bucket condensed-entries]
+               (reverse (get-recent-condensed-entries-by-bucket days))]
+           (do (prn "Uploading " (count condensed-entries)
+                    " condensed entries for bucket " bucket)
+               (mapv calendar/add-event!
+                 (map entry->event condensed-entries))))))
+
+(defn entries->sentence-summaries-by-day
+  [entries]
+  (into {}
+        (for [[day-str daily-entries] (group-by #(get-day-str (:datetime %))
+                                                entries)]
+          [day-str
+           (st/join ".  "
+                    (->> daily-entries
+                         (sort-by :datetime)
+                         (map :title)))])))
+
+(defn make-recent-sentence-summaries-by-day
+  [days]
+  (->> days
+       (get-recent-condensed-entries-by-bucket)
+       (vals)
+       (reduce concat)
+       (map entries->sentence-summaries-by-day)))

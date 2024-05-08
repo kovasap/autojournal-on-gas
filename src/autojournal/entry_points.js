@@ -10,6 +10,10 @@ function send_weekly_report_email() {
   autojournal.core.send_report_email(7);
 }
 
+function send_weekly_lifelog_email() {
+  autojournal.core.send_lifelog_email(7);
+}
+
 function update_lifelog() {
   autojournal.core.update_lifelog();
 }
