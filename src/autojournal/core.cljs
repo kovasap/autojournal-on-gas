@@ -97,6 +97,8 @@
        [:body
         "Check out https://kovasap.github.io/docs/lifestyle-optimizations/daily-physiological-tricks/. "
         [:br]
+        "This tries to emulate the format at https://github.com/kovasap/life-timeline/blob/main/timeline.md."
+        [:br]
         (into [:ul]
               (for [[day-str sentences] sentence-summaries]
                 [:li [:strong day-str] ": " sentences]))]])))
