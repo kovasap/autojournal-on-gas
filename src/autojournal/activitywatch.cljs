@@ -212,21 +212,9 @@
                (mapv calendar/add-event!
                  (map entry->event condensed-entries))))))
 
-(defn entries->sentence-summaries-by-day
-  [entries]
-  (into {}
-        (for [[day-str daily-entries] (group-by #(get-day-str (:datetime %))
-                                                entries)]
-          [day-str
-           (st/join ".  "
-                    (->> daily-entries
-                         (sort-by :datetime)
-                         (map :title)))])))
-
-(defn make-recent-sentence-summaries-by-day
+(defn get-condensed-entries
   [days]
   (->> days
        (get-recent-condensed-entries-by-bucket)
        (vals)
-       (reduce concat)
-       (map entries->sentence-summaries-by-day)))
+       (reduce concat)))

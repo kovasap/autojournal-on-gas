@@ -1,6 +1,7 @@
 (ns autojournal.time
   (:require
-    [cljs-time.format :refer [unparse formatter]]))
+    [cljs-time.format :refer [unparse formatter]]
+    [cljs-time.core :refer [date-time year month day hour minute second]]))
 
 (defn days-between
   [date1 date2]
@@ -21,3 +22,11 @@
 (defn get-day-str
   [datetime]
   (unparse (formatter "MM/dd") datetime))
+
+(defn get-day
+  [datetime]
+  (date-time (year datetime) (month datetime) (day datetime)))
+
+(defn get-day-tuple
+  [datetime]
+  [(year datetime) (month datetime) (day datetime)])

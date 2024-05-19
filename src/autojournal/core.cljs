@@ -19,9 +19,10 @@
             [autojournal.food.food-db-build :refer [RawCronFood]]
             [autojournal.sleep :refer [Night]]
             [autojournal.location :as location :refer [Reading TallyFunction]]
-            [autojournal.time :refer [JsDate]]
+            [autojournal.time :refer [JsDate get-day-str]]
             [autojournal.env-switching :refer [env-switch]]
             [autojournal.continuous-glucose-monitoring :as cgm]
+            [autojournal.lifelog-generation :refer [build-lifelog-html]]
             [autojournal.vega
              :refer
              [make-all-event-plots write-vega-page timeline-plot-types]]
@@ -84,24 +85,12 @@
 (defn ^:export send-lifelog-email
   {:malli/schema [:=> [:cat :int] Hiccup]}
   [days-to-summarize]
-  (let [sentence-summaries
-        (merge-with str
-                    (daily-lifelog/make-all-sentence-summaries-by–day)
-                    (activitywatch/make-recent-sentence-summaries-by-day
-                      days-to-summarize)
-                    #_(location/make-sentence-summaries days-to-summarize))]
-    (gmail/send-self-mail
-      "Lifelog"
-      [:html
-       [:head]
-       [:body
-        "Check out https://kovasap.github.io/docs/lifestyle-optimizations/daily-physiological-tricks/. "
-        [:br]
-        "This tries to emulate the format at https://github.com/kovasap/life-timeline/blob/main/timeline.md."
-        [:br]
-        (into [:ul]
-              (for [[day-str sentences] sentence-summaries]
-                [:li [:strong day-str] ": " sentences]))]])))
+  (gmail/send-self-mail
+    "Lifelog"
+    (build-lifelog-html
+      [[(daily-lifelog/get-all-entries) :experience]
+       [(activitywatch/get-condensed-entries days-to-summarize) :title]])))
+         
 
 (defn ^:dev/after-load refresh []
   (env-switch

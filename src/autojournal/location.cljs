@@ -242,16 +242,15 @@
 
 (defn -name-location
   [{location-lat :lat location-lon :lon} location-names]
-  (st/join
-    ","
-    (->> location-names
-         (filter
-           (fn [[{:keys [lat lon]} _]]
-             (-are-same-place
-               {:lat lat :lon lon :accuracy-miles 0.1}
-               {:lat location-lat :lon location-lon :accuracy-miles 0.1})))
-         (vals))))
-                 
+  (as-> location-names x
+       (filter
+         (fn [[{:keys [lat lon]} _]]
+           (-are-same-place
+             {:lat lat :lon lon :accuracy-miles 0.1}
+             {:lat location-lat :lon location-lon :accuracy-miles 0.1}))
+         x)
+       (vals x)
+       (if x (st/join "," x) (str location-lat ", " location-lon))))
 
 (defn -readings-to-event
   "Converts a bunch of readings to a single event. Assumes the readings

@@ -1,6 +1,6 @@
 (ns autojournal.daily-lifelog
   (:require [autojournal.testing-utils :refer [assert=]]
-            [autojournal.time :refer [JsDate recent-items get-day-str]]
+            [autojournal.time :refer [JsDate recent-items get-day]]
             [autojournal.html-utils :refer [Hiccup make-table]]
             [autojournal.drive :as drive]
             [autojournal.calendar :as calendar]
@@ -25,10 +25,10 @@
   [row]
   (let [rdate (from-date (:Date row))
         rtime (from-date (:Time row))]
-    {:datetime     (to-date (date-time (year rdate) (month rdate)
-                                       (day rdate)
-                                       (hour rtime) (minute rtime)
-                                       (second rtime)))
+    {:datetime     (date-time (year rdate) (month rdate)
+                              (day rdate)
+                              (hour rtime) (minute rtime)
+                              (second rtime))
      :raw-data     row
      :valence      (:Valence row)
      :importance   (:Importance row)
@@ -60,7 +60,7 @@
     (select-keys entry [:importance :valence :tags :experience])
     {:start       (+ pst-offset (to-long (:datetime entry)))
      :end         (+ pst-offset
-                     (to-long (plus (from-date (:datetime entry)) (minutes 60))))
+                     (to-long (plus (:datetime entry) (minutes 60))))
      :calendar    (cond
                     (contains? (:tags entry) "food") "Lifelog Food"
                     (contains? (:tags entry) "sleep") "Lifelog Sleep"
@@ -99,22 +99,6 @@
                          (map #(% entry) columns)))))))
 
 (def table-keys [:valence :importance :experience :tags])
-
-(defn entries->sentence-summaries-by–day
-  [entries]
-  (into {}
-        (for [[day-str daily-entries] (group-by #(get-day-str (:datetime %))
-                                                entries)]
-          [day-str
-           (st/join ".  "
-                    (->> daily-entries
-                         (sort-by :datetime)
-                         ; (filter #(not (contains? (:tags %) "sleep")))
-                         (map :experience)))])))
-
-(defn make-all-sentence-summaries-by–day
-  []
-  (entries->sentence-summaries-by–day (get-all-entries)))
 
 (defn report
   "Generates a hiccup summary of recent entries"
