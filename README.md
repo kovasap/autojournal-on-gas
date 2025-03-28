@@ -2,6 +2,8 @@
 
 The successor to https://github.com/kovasap/autojournal.
 
+See https://github.com/kovasap/autojournal?tab=readme-ov-file#examples for some visual examples of what this program can do.
+
 ## Vision
 
 Autojournal is meant to be a personal timeline information management tool that can aggregate data from many sources and then visualize/analyze it.
