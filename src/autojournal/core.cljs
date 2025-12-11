@@ -11,6 +11,7 @@
             [autojournal.food.main :as food]
             [autojournal.drive :as drive]
             [autojournal.mood :as mood]
+            [autojournal.cool-stuff :as cool-stuff]
             [autojournal.daily-lifelog :as daily-lifelog :refer [Entry]]
             [autojournal.food-and-journal :as food-and-journal]
             [autojournal.food.common :refer [Meal NutrientName Food]]
@@ -90,6 +91,12 @@
     (build-lifelog-html
       [[(daily-lifelog/get-all-entries) :experience]
        [(activitywatch/get-condensed-entries days-to-summarize) :title]])))
+
+(defn ^:export send-cool-stuff-reminder-email
+  {:malli/schema [:=> [:cat :int] Hiccup]}
+  []
+  (let [{:keys [title html]} (cool-stuff/build-reminder-email)]
+    (gmail/send-self-mail title html)))
          
 
 (defn ^:dev/after-load refresh []

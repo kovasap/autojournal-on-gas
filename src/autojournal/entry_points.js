@@ -14,6 +14,10 @@ function send_weekly_lifelog_email() {
   autojournal.core.send_lifelog_email(7);
 }
 
+function send_cool_stuff_reminder_email() {
+  autojournal.core.send_cool_stuff_reminder_email();
+}
+
 function update_lifelog() {
   autojournal.core.update_lifelog();
 }
