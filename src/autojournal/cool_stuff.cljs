@@ -1,11 +1,9 @@
 (ns autojournal.cool-stuff
   (:require [autojournal.drive :as drive]
-            [clojure.string :as st]))
+            [clojure.string :as st]
+            [clojure.set :refer [intersection]]))
 
 (def sheet-name "Cool Stuff")
-
-(def num-random-things 5)
-(def num-priority-things 1)
 
 (defn row->li
   [{:keys [Name Tags Active Notes]}]
@@ -34,20 +32,28 @@
              (->> sheet-data
                   (drop 1)
                   (filter #(= (:Active %) "Priority"))
-                  (take num-priority-things)
+                  (take 2)
                   (map row->li)))
        "Music:"
        (into [:ul]
              (->> sheet-data
                   (drop 1)
                   (filter #(contains? (:Tags %) "Music"))
-                  (take num-random-things)
+                  (take 4)
                   (map row->li)))
-       (str num-random-things " more random things:")
+       "Memories"
        (into [:ul]
              (->> sheet-data
                   (drop 1)
-                  (remove #(contains? (:Tags %) "Music"))
-                  (take num-random-things)
+                  (filter #(contains? (:Tags %) "Memory"))
+                  (take 2)
+                  (map row->li)))
+       "More random things:"
+       (into [:ul]
+             (->> sheet-data
+                  (drop 1)
+                  (filter #(empty? (intersection (:Tags %)
+                                                 #{"Memory" "Music"})))
+                  (take 5)
                   (map row->li)))
        "See full sheet at https://docs.google.com/spreadsheets/d/1jnb_Yg9BYhG2O-RGe822YODZSJu2LcjvORL4Q-zDqxA/edit."]]}))
